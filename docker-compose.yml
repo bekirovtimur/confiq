@@ -34,7 +34,7 @@ services:
       - CERTBOT_EMAIL=${CERTBOT_EMAIL:-admin@your-domain.com}
       - CERTBOT_DOMAIN=${CERTBOT_DOMAIN:-your-domain.com}
     volumes:
-      - ./nginx:/etc/nginx/user.conf.d:ro
+      - ./nginx/app.conf.template:/etc/nginx/templates/app.conf.template:ro
       - nginx-data:/etc/nginx/conf.d
       - letsencrypt:/etc/letsencrypt
     depends_on:
