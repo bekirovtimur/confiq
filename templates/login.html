@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Вход в систему - Confiq{% endblock %}
+
+{% block content %}
+<div class="login-card fade-in" style="text-align: center;">
+    <img src="{{ url_for('static', filename='img/confiq-logo.png') }}" alt="Confiq" style="max-width: 280px; margin-bottom: 16px;">
+    <p class="login-subtitle">Войдите в систему для продолжения</p>
+
+    <form method="POST" style="margin-top: 32px;">
+        {{ form.hidden_tag() }}
+        
+        <div class="md-field {% if form.username.errors %}md-field-error{% endif %}">
+            <input type="text" 
+                   class="md-field-input" 
+                   id="username" 
+                   name="username" 
+                   placeholder=" "
+                   value="{{ form.username.data or '' }}"
+                   required>
+            <label class="md-field-label" for="username">Логин</label>
+        </div>
+        {% if form.username.errors %}
+            <div class="md-field-helper" style="color: var(--md-error); margin-top: -12px; margin-bottom: 16px;">
+                {% for error in form.username.errors %}{{ error }}{% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="md-field {% if form.password.errors %}md-field-error{% endif %}">
+            <input type="password" 
+                   class="md-field-input" 
+                   id="password" 
+                   name="password" 
+                   placeholder=" "
+                   required>
+            <label class="md-field-label" for="password">Пароль</label>
+        </div>
+        {% if form.password.errors %}
+            <div class="md-field-helper" style="color: var(--md-error); margin-top: -12px; margin-bottom: 16px;">
+                {% for error in form.password.errors %}{{ error }}{% endfor %}
+            </div>
+        {% endif %}
+
+        <button type="submit" class="md-btn md-btn-filled" style="width: 100%; margin-top: 16px;">
+            <span class="material-icons-round">login</span>
+            Войти
+        </button>
+    </form>
+    
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование {{ config_type.name }} - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <div class="md-breadcrumbs">
+        <a href="{{ url_for('admin.dashboard') }}">Панель управления</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <a href="{{ url_for('admin.config_types') }}">Типы конфигураций</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <span class="md-breadcrumbs-current">{{ config_type.name }}</span>
+    </div>
+
+    <div class="md-card">
+        <div class="md-card-header">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">edit</span>
+                Редактирование типа конфигурации
+            </div>
+        </div>
+        <div class="md-card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                
+                <div class="md-field {% if form.name.errors %}md-field-error{% endif %}">
+                    <input type="text" class="md-field-input" id="name" name="name" placeholder=" " value="{{ form.name.data or config_type.name }}" required>
+                    <label class="md-field-label" for="name">Название</label>
+                </div>
+                {% if form.name.errors %}
+                    <div class="md-field-helper" style="color: var(--md-error);">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>
+                {% endif %}
+
+                <div class="md-field {% if form.description.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                    <input type="text" class="md-field-input" id="description" name="description" placeholder=" " value="{{ form.description.data or config_type.description or '' }}">
+                    <label class="md-field-label" for="description">Описание</label>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <div style="font-weight: 500; margin-bottom: 8px;">Шаблон конфигурации (Jinja2)</div>
+                    <textarea class="md-field-input" id="config_template" name="config_template" rows="10" style="height: auto; resize: vertical; font-family: var(--md-font-mono);">{{ form.config_template.data or config_type.config_template }}</textarea>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <div style="font-weight: 500; margin-bottom: 8px;">Инструкции по использованию</div>
+                    <textarea class="md-field-input" id="usage_instructions" name="usage_instructions" rows="8" style="height: auto; resize: vertical;">{{ form.usage_instructions.data or config_type.usage_instructions or '' }}</textarea>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <div style="font-weight: 500; margin-bottom: 8px;">Ссылки на клиенты (JSON)</div>
+                    <textarea class="md-field-input" id="client_links" name="client_links" rows="5" style="height: auto; resize: vertical; font-family: var(--md-font-mono);">{{ form.client_links.data or config_type.client_links or '{}' }}</textarea>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                    <a href="{{ url_for('admin.config_types') }}" class="md-btn md-btn-text">
+                        <span class="material-icons-round">arrow_back</span>
+                        Назад
+                    </a>
+                    <button type="submit" class="md-btn md-btn-filled">
+                        <span class="material-icons-round">save</span>
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

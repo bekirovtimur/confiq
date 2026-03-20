@@ -1,0 +1,53 @@
+services:
+  app:
+    build: .
+    expose:
+      - "8000"
+    environment:
+      - ADMIN_LOGIN=${ADMIN_LOGIN:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production-please-use-strong-random-key}
+      - FLASK_ENV=production
+      - FLASK_APP=app.py
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/auth/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - network
+
+  nginx:
+    image: jonasal/nginx-certbot:latest
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-admin@your-domain.com}
+      - CERTBOT_DOMAIN=${CERTBOT_DOMAIN:-your-domain.com}
+    volumes:
+      - ./nginx:/etc/nginx/user.conf.d:ro
+      - nginx-data:/etc/nginx/conf.d
+      - letsencrypt:/etc/letsencrypt
+    depends_on:
+      - app
+    networks:
+      - network
+
+networks:
+  network:
+    driver: bridge
+
+volumes:
+  nginx-data:
+    driver: local
+  letsencrypt:
+    driver: local

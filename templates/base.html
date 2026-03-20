@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Confiq{% endblock %}</title>
+    
+    <!-- Material Design CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/confiq-icon.png') }}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    {% if current_user.is_authenticated %}
+    <!-- App Bar -->
+    <header class="app-bar">
+        <a href="{{ url_for('user.dashboard' if not current_user.is_admin else 'admin.dashboard') }}" class="app-bar-brand">
+            <img src="{{ url_for('static', filename='img/confiq-logo.png') }}" alt="Confiq" style="height: 32px; width: auto;">
+        </a>
+        
+        <nav class="app-bar-nav d-none d-lg-flex">
+            {% if current_user.is_admin %}
+                <a href="{{ url_for('admin.dashboard') }}" class="app-bar-nav-item {% if request.endpoint and 'admin.dashboard' in request.endpoint %}active{% endif %}">
+                    <span class="material-icons-round md-20">dashboard</span>
+                    Панель
+                </a>
+                <a href="{{ url_for('admin.users') }}" class="app-bar-nav-item {% if request.endpoint and 'admin.users' in request.endpoint %}active{% endif %}">
+                    <span class="material-icons-round md-20">people</span>
+                    Пользователи
+                </a>
+                <a href="{{ url_for('admin.endpoints') }}" class="app-bar-nav-item {% if request.endpoint and 'admin.endpoints' in request.endpoint %}active{% endif %}">
+                    <span class="material-icons-round md-20">dns</span>
+                    Endpoints
+                </a>
+                <a href="{{ url_for('admin.config_types') }}" class="app-bar-nav-item {% if request.endpoint and 'admin.config_types' in request.endpoint %}active{% endif %}">
+                    <span class="material-icons-round md-20">category</span>
+                    Типы
+                </a>
+                <a href="{{ url_for('user.configs') }}" class="app-bar-nav-item {% if request.endpoint and 'user.configs' in request.endpoint %}active{% endif %}">
+                    <span class="material-icons-round md-20">vpn_key</span>
+                    Конфигурации
+                </a>
+            {% else %}
+                <a href="{{ url_for('user.dashboard') }}" class="app-bar-nav-item {% if request.endpoint == 'user.dashboard' %}active{% endif %}">
+                    <span class="material-icons-round md-20">dashboard</span>
+                    Панель
+                </a>
+                <a href="{{ url_for('user.configs') }}" class="app-bar-nav-item {% if request.endpoint == 'user.configs' %}active{% endif %}">
+                    <span class="material-icons-round md-20">list</span>
+                    Конфигурации
+                </a>
+            {% endif %}
+        </nav>
+        
+        <div class="app-bar-actions">
+            <!-- Mobile menu button -->
+            <button class="menu-toggle d-lg-none" type="button" onclick="document.querySelector('.mobile-nav').classList.toggle('show')">
+                <span class="material-icons-round">menu</span>
+            </button>
+            
+            <!-- User menu -->
+            <div style="position: relative;">
+                <button class="md-btn md-btn-text" onclick="toggleUserMenu()">
+                    <span class="material-icons-round">account_circle</span>
+                    {{ current_user.username }}
+                    {% if current_user.is_admin %}
+                        <span class="md-badge" style="margin-left: 4px;">A</span>
+                    {% endif %}
+                    <span class="material-icons-round">expand_more</span>
+                </button>
+                <div class="md-menu" id="userMenu" style="position: absolute; right: 0; top: 100%; margin-top: 4px; display: none; z-index: 1001;">
+                    <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.profile') }}'">
+                        <span class="material-icons-round">person</span>
+                        Профиль
+                    </div>
+                    <div class="md-divider"></div>
+                    <div class="md-menu-item" onclick="window.location.href='{{ url_for('logout') }}'">
+                        <span class="material-icons-round">logout</span>
+                        Выйти
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Mobile Navigation -->
+    <nav class="mobile-nav">
+        <div class="md-menu" style="box-shadow: none; position: static; display: block;">
+            {% if current_user.is_admin %}
+                <div class="md-menu-item" onclick="window.location.href='{{ url_for('admin.dashboard') }}'">
+                    <span class="material-icons-round">admin_panel_settings</span>
+                    Панель управления
+                </div>
+                <div class="md-menu-item" onclick="window.location.href='{{ url_for('admin.users') }}'">
+                    <span class="material-icons-round">people</span>
+                    Пользователи
+                </div>
+                <div class="md-menu-item" onclick="window.location.href='{{ url_for('admin.endpoints') }}'">
+                    <span class="material-icons-round">dns</span>
+                    Endpoints
+                </div>
+                <div class="md-menu-item" onclick="window.location.href='{{ url_for('admin.config_types') }}'">
+                    <span class="material-icons-round">category</span>
+                    Типы конфигураций
+                </div>
+                <div class="md-menu-item" onclick="window.location.href='{{ url_for('admin.configs') }}'">
+                    <span class="material-icons-round">description</span>
+                    Все конфиги
+                </div>
+                <div class="md-divider"></div>
+                <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.dashboard') }}'">
+                    <span class="material-icons-round">dashboard</span>
+                    Панель пользователя
+                </div>
+            {% else %}
+                <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.dashboard') }}'">
+                    <span class="material-icons-round">dashboard</span>
+                    Панель
+                </div>
+            {% endif %}
+            <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.configs') }}'">
+                <span class="material-icons-round">vpn_key</span>
+                Конфигурации
+            </div>
+            <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.create_config') }}'">
+                <span class="material-icons-round">add</span>
+                Создать конфиг
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages (Toast Notifications) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="toast-container" id="toastContainer">
+                {% for category, message in messages %}
+                    <div class="toast toast-{{ 'error' if category == 'error' or category == 'danger' else category }}" data-toast>
+                        <span class="material-icons-round toast-icon">
+                            {% if category == 'success' %}check_circle
+                            {% elif category == 'error' or category == 'danger' %}error
+                            {% elif category == 'warning' %}warning
+                            {% else %}info{% endif %}
+                        </span>
+                        <span class="toast-message">{{ message }}</span>
+                        <button type="button" class="toast-close" onclick="this.closest('[data-toast]').remove()">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="{% if current_user.is_authenticated %}main-content{% else %}login-page{% endif %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer style="background-color: var(--md-surface); border-top: 1px solid var(--md-outline-variant); padding: 2px 0;">
+        <div class="content-container" style="display: flex; justify-content: center; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px; color: var(--md-on-surface-variant);">
+                <a href="https://github.com/bekirovtimur/confiq" target="_blank" style="color: var(--md-primary); text-decoration: none; font-weight: 500;">Confiq</a>
+                <small style="font-size: 0.75rem;">MIT License</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
+    <script>
+        // User menu toggle
+        function toggleUserMenu() {
+            const menu = document.getElementById('userMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // Close user menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('userMenu');
+            const btn = e.target.closest('.md-btn-text');
+            if (!btn && menu) {
+                menu.style.display = 'none';
+            }
+        });
+        
+        // Auto-hide toast notifications after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const toasts = document.querySelectorAll('[data-toast]');
+            toasts.forEach(function(toast, index) {
+                // Stagger the auto-hide timing for multiple toasts
+                setTimeout(function() {
+                    hideToast(toast);
+                }, 5000 + (index * 500));
+            });
+        });
+        
+        function hideToast(toast) {
+            if (!toast) return;
+            toast.classList.add('toast-hiding');
+            setTimeout(function() {
+                toast.remove();
+            }, 300);
+        }
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

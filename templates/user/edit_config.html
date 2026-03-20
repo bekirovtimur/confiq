@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование {{ config.name or 'конфигурации' }} - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <!-- Breadcrumbs -->
+    <div class="md-breadcrumbs">
+        <a href="{{ url_for('user.dashboard') }}">Главная</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <a href="{{ url_for('user.configs') }}">Мои конфиги</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <a href="{{ url_for('user.view_config', config_id=config.id) }}">{{ config.name or 'Конфигурация' }}</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <span class="md-breadcrumbs-current">Редактировать</span>
+    </div>
+
+    <div class="md-grid md-grid-2" style="align-items: start;">
+        <!-- Edit Form -->
+        <div class="md-card">
+            <div class="md-card-header">
+                <div class="md-card-title">
+                    <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">edit</span>
+                    Редактирование конфигурации
+                </div>
+            </div>
+            <div class="md-card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="md-field {% if form.name.errors %}md-field-error{% endif %}">
+                        <input type="text" 
+                               class="md-field-input" 
+                               id="name" 
+                               name="name" 
+                               placeholder=" "
+                               value="{{ form.name.data or config.name or '' }}"
+                               required>
+                        <label class="md-field-label" for="name">Название конфигурации</label>
+                    </div>
+                    {% if form.name.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">
+                            {% for error in form.name.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="md-field-helper">
+                        Название поможет вам легче идентифицировать конфигурацию
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                        <a href="{{ url_for('user.view_config', config_id=config.id) }}" class="md-btn md-btn-text">
+                            <span class="material-icons-round">arrow_back</span>
+                            Отмена
+                        </a>
+                        <button type="submit" class="md-btn md-btn-filled">
+                            <span class="material-icons-round">save</span>
+                            Сохранить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Sidebar Info -->
+        <div>
+            <div class="md-card md-card-outlined">
+                <div class="md-card-header">
+                    <div class="md-card-title">
+                        <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">info</span>
+                        Информация о конфигурации
+                    </div>
+                </div>
+                <div class="md-card-body">
+                    <ul class="md-list" style="padding: 0;">
+                        <li class="md-list-item" style="margin: 0; padding: 8px 0;">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round md-18">label</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">Текущее название</div>
+                                <div class="md-list-item-subtitle">{{ config.name or 'Без названия' }}</div>
+                            </div>
+                        </li>
+                        <li class="md-list-item" style="margin: 0; padding: 8px 0;">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round md-18">category</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">Тип конфигурации</div>
+                                <div class="md-list-item-subtitle">
+                                    {% if config.config_type %}
+                                        {{ config.config_type.name }}
+                                    {% else %}
+                                        WireGuard
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        <li class="md-list-item" style="margin: 0; padding: 8px 0;">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round md-18">dns</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">Endpoint</div>
+                                <div class="md-list-item-subtitle">{{ config.endpoint_ref.name }}</div>
+                            </div>
+                        </li>
+                        <li class="md-list-item" style="margin: 0; padding: 8px 0;">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round md-18">event</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">Создано</div>
+                                <div class="md-list-item-subtitle">{{ config.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="md-card" style="margin-top: 16px; background: #e8f0fe; border: 1px solid var(--google-blue);">
+                <div class="md-card-body">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span class="material-icons-round" style="color: var(--google-blue);">lightbulb</span>
+                        <div>
+                            <div style="font-weight: 500; color: #1557b0;">Советы по именованию</div>
+                            <p style="color: #1557b0; margin: 8px 0 0 0; font-size: 0.875rem;">
+                                Хорошие примеры: "iPhone John", "Рабочий ноутбук", "Домашний", "Основной"
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Управление типами конфигураций - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <div class="page-header">
+        <div>
+            <h1 style="font-weight: 400;">Управление типами конфигураций</h1>
+            <p style="color: var(--md-on-surface-variant); margin: 0;">Управление шаблонами генерации конфигов</p>
+        </div>
+        <a href="{{ url_for('admin.create_config_type') }}" class="md-fab">
+            <span class="material-icons-round">add</span>
+            Создать тип
+        </a>
+    </div>
+
+    <div class="md-card">
+        <div class="md-card-header">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">category</span>
+                Список типов
+            </div>
+        </div>
+        <div class="md-card-body">
+            {% if config_types %}
+                <div class="md-table-container">
+                    <table class="md-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Описание</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ct in config_types %}
+                            <tr>
+                                <td>{{ ct.id }}</td>
+                                <td><strong>{{ ct.name }}</strong></td>
+                                <td style="max-width: 300px;">{{ ct.description or '-' }}</td>
+                                <td>
+                                    {% if ct.is_active %}
+                                        <span class="md-chip md-chip-filter" style="background: #e6f4ea; color: #1e8e3e;">
+                                            <span class="material-icons-round md-18">check_circle</span>
+                                            Активен
+                                        </span>
+                                    {% else %}
+                                        <span class="md-chip md-chip-suggestion">
+                                            <span class="material-icons-round md-18">block</span>
+                                            Отключен
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 8px;">
+                                        <a href="{{ url_for('admin.edit_config_type', config_type_id=ct.id) }}" 
+                                           class="md-btn md-btn-icon md-btn-tonal" title="Редактировать">
+                                            <span class="material-icons-round md-18">edit</span>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('admin.toggle_config_type', config_type_id=ct.id) }}" style="display: inline;">
+                                            <button type="submit"
+                                                    class="md-btn md-btn-icon {{ 'md-btn-filled' if ct.is_active else 'md-btn-outlined' }}"
+                                                    title="{{ 'Отключить' if ct.is_active else 'Включить' }}"
+                                                    style="{{ '' if ct.is_active else 'color: var(--md-on-surface-variant); border-color: var(--md-outline);' }}">
+                                                <span class="material-icons-round md-18">{{ 'toggle_on' if ct.is_active else 'toggle_off' }}</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <span class="material-icons-round" style="font-size: 48px;">category</span>
+                    </div>
+                    <h3 class="empty-state-title">Типы не найдены</h3>
+                    <p class="empty-state-description">Создайте первый тип конфигурации</p>
+                    <a href="{{ url_for('admin.create_config_type') }}" class="md-fab">
+                        <span class="material-icons-round">add</span>
+                        Создать тип
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

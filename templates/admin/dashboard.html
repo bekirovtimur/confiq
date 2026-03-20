@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Панель управления - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 style="font-weight: 400;">Панель управления</h1>
+            <p style="color: var(--md-on-surface-variant); margin: 0;">Обзор системы и статистика</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="stats-card">
+            <div class="stats-card-icon blue">
+                <span class="material-icons-round md-24">people</span>
+            </div>
+            <div class="stats-card-value">{{ total_users }}</div>
+            <div class="stats-card-label">Пользователей</div>
+            <div class="text-body-small" style="color: var(--md-on-surface-variant); margin-top: 8px;">
+                Всего зарегистрировано
+            </div>
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-card-icon green">
+                <span class="material-icons-round md-24">vpn_key</span>
+            </div>
+            <div class="stats-card-value">{{ total_configs }}</div>
+            <div class="stats-card-label">Конфигураций</div>
+            <div class="text-body-small" style="color: var(--md-on-surface-variant); margin-top: 8px;">
+                Активных конфигов
+            </div>
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-card-icon yellow">
+                <span class="material-icons-round md-24">dns</span>
+            </div>
+            <div class="stats-card-value">{{ total_endpoints }}</div>
+            <div class="stats-card-label">Endpoints</div>
+            <div class="text-body-small" style="color: var(--md-on-surface-variant); margin-top: 8px;">
+                Доступных серверов
+            </div>
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-card-icon" style="background: #f3e8fd; color: #9334e6;">
+                <span class="material-icons-round md-24">donut_large</span>
+            </div>
+            <div class="stats-card-value">{{ "%.1f"|format((total_configs/((total_users * 5) if total_users > 0 else 1)*100)) }}%</div>
+            <div class="stats-card-label">Использование</div>
+            <div class="text-body-small" style="color: var(--md-on-surface-variant); margin-top: 8px;">
+                От общего лимита
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="md-card mb-4">
+        <div class="md-card-header">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">bolt</span>
+                Быстрые действия
+            </div>
+        </div>
+        <div class="md-card-body">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                <a href="{{ url_for('admin.create_user') }}" class="md-btn md-btn-filled">
+                    <span class="material-icons-round">person_add</span>
+                    Создать пользователя
+                </a>
+                <a href="{{ url_for('admin.create_endpoint') }}" class="md-btn md-btn-tonal">
+                    <span class="material-icons-round">add_circle</span>
+                    Добавить Endpoint
+                </a>
+                <a href="{{ url_for('admin.users') }}" class="md-btn md-btn-outlined">
+                    <span class="material-icons-round">people</span>
+                    Пользователи
+                </a>
+                <a href="{{ url_for('admin.configs') }}" class="md-btn md-btn-text">
+                    <span class="material-icons-round">description</span>
+                    Все конфигурации
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="md-grid md-grid-2">
+        <!-- Recent Users -->
+        <div class="md-card">
+            <div class="md-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="md-card-title">
+                    <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">history</span>
+                    Последние пользователи
+                </div>
+                <a href="{{ url_for('admin.users') }}" class="md-btn md-btn-text md-btn-small">
+                    Все
+                    <span class="material-icons-round md-18">arrow_forward</span>
+                </a>
+            </div>
+            <div class="md-card-body" style="padding: 0;">
+                {% if recent_users %}
+                    <ul class="md-list">
+                        {% for user in recent_users %}
+                        <li class="md-list-item" style="border-bottom: 1px solid var(--md-outline-variant); margin: 0; border-radius: 0;">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round">person</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">
+                                    {{ user.username }}
+                                    {% if user.is_admin %}
+                                        <span class="md-chip md-chip-filter selected" style="margin-left: 8px; font-size: 0.625rem;">Admin</span>
+                                    {% endif %}
+                                </div>
+                                <div class="md-list-item-subtitle">{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                            </div>
+                            <span class="md-chip md-chip-assist">{{ user.get_config_count() }}/{{ user.config_limit }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state" style="padding: 32px;">
+                        <p style="color: var(--md-on-surface-variant); margin: 0;">Нет зарегистрированных пользователей</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recent Configs -->
+        <div class="md-card">
+            <div class="md-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="md-card-title">
+                    <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">update</span>
+                    Последние конфигурации
+                </div>
+                <a href="{{ url_for('admin.configs') }}" class="md-btn md-btn-text md-btn-small">
+                    Все
+                    <span class="material-icons-round md-18">arrow_forward</span>
+                </a>
+            </div>
+            <div class="md-card-body" style="padding: 0;">
+                {% if recent_configs %}
+                    <ul class="md-list">
+                        {% for config in recent_configs %}
+                        <li class="md-list-item" style="border-bottom: 1px solid var(--md-outline-variant); margin: 0; border-radius: 0;">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round">vpn_key</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">{{ config.name or 'Без названия' }}</div>
+                                <div class="md-list-item-subtitle">
+                                    <span class="material-icons-round md-18" style="vertical-align: middle;">person</span>
+                                    {{ config.owner.username }} | 
+                                    <span class="material-icons-round md-18" style="vertical-align: middle;">dns</span>
+                                    {{ config.endpoint_ref.name }}
+                                </div>
+                            </div>
+                            <span class="text-body-small" style="color: var(--md-on-surface-variant);">
+                                {{ config.created_at.strftime('%d.%m.%Y') }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state" style="padding: 32px;">
+                        <p style="color: var(--md-on-surface-variant); margin: 0;">Нет созданных конфигураций</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

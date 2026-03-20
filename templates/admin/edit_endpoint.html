@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование {{ endpoint.name }} - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <div class="md-breadcrumbs">
+        <a href="{{ url_for('admin.dashboard') }}">Панель управления</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <a href="{{ url_for('admin.endpoints') }}">Endpoints</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <span class="md-breadcrumbs-current">{{ endpoint.name }}</span>
+    </div>
+
+    <div class="md-grid md-grid-2" style="align-items: start;">
+        <div class="md-card">
+            <div class="md-card-header">
+                <div class="md-card-title">
+                    <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">edit</span>
+                    Редактирование Endpoint
+                </div>
+            </div>
+            <div class="md-card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="md-field {% if form.name.errors %}md-field-error{% endif %}">
+                        <input type="text" class="md-field-input" id="name" name="name" placeholder=" " value="{{ form.name.data or endpoint.name }}" required>
+                        <label class="md-field-label" for="name">Название</label>
+                    </div>
+                    {% if form.name.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>
+                    {% endif %}
+
+                    <div class="md-field {% if form.address.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                        <input type="text" class="md-field-input" id="address" name="address" placeholder=" " value="{{ form.address.data or endpoint.address }}" required>
+                        <label class="md-field-label" for="address">Адрес сервера</label>
+                    </div>
+                    {% if form.address.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">{% for error in form.address.errors %}{{ error }}{% endfor %}</div>
+                    {% endif %}
+
+                    <div class="md-field {% if form.port.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                        <input type="number" class="md-field-input" id="port" name="port" placeholder=" " value="{{ form.port.data or endpoint.port }}" required>
+                        <label class="md-field-label" for="port">Порт</label>
+                    </div>
+                    {% if form.port.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">{% for error in form.port.errors %}{{ error }}{% endfor %}</div>
+                    {% endif %}
+
+                    <div class="md-field {% if form.config_types.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                        <select class="md-select" id="config_types" name="config_types" multiple size="5">
+                            {% for choice in form.config_types.choices %}
+                            <option value="{{ choice[0] }}" {% if choice[0] in form.config_types.data %}selected{% endif %}>{{ choice[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if form.config_types.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">{% for error in form.config_types.errors %}{{ error }}{% endfor %}</div>
+                    {% endif %}
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                        <a href="{{ url_for('admin.endpoints') }}" class="md-btn md-btn-text">
+                            <span class="material-icons-round">arrow_back</span>
+                            Назад
+                        </a>
+                        <button type="submit" class="md-btn md-btn-filled">
+                            <span class="material-icons-round">save</span>
+                            Сохранить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="md-card md-card-outlined">
+            <div class="md-card-header">
+                <div class="md-card-title">
+                    <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">info</span>
+                    Информация
+                </div>
+            </div>
+            <div class="md-card-body">
+                <ul class="md-list" style="padding: 0;">
+                    <li class="md-list-item" style="margin: 0; padding: 8px 0; border-bottom: 1px solid var(--md-outline-variant);">
+                        <span class="md-list-item-icon"><span class="material-icons-round md-18">link</span></span>
+                        <div class="md-list-item-content">
+                            <div class="md-list-item-title">Полный адрес</div>
+                            <div class="md-list-item-subtitle"><code>{{ endpoint.full_address }}</code></div>
+                        </div>
+                    </li>
+                    <li class="md-list-item" style="margin: 0; padding: 8px 0; border-bottom: 1px solid var(--md-outline-variant);">
+                        <span class="md-list-item-icon"><span class="material-icons-round md-18">vpn_key</span></span>
+                        <div class="md-list-item-content">
+                            <div class="md-list-item-title">Конфигурации</div>
+                            <div class="md-list-item-subtitle">{{ endpoint.configs|length }}</div>
+                        </div>
+                    </li>
+                    <li class="md-list-item" style="margin: 0; padding: 8px 0;">
+                        <span class="md-list-item-icon"><span class="material-icons-round md-18">event</span></span>
+                        <div class="md-list-item-content">
+                            <div class="md-list-item-title">Создан</div>
+                            <div class="md-list-item-subtitle">{{ endpoint.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

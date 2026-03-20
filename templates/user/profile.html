@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 style="font-weight: 400;">Профиль пользователя</h1>
+            <p style="color: var(--md-on-surface-variant); margin: 0;">Настройки аккаунта и статистика использования</p>
+        </div>
+    </div>
+
+    <div class="md-grid md-grid-2" style="align-items: start;">
+        <!-- User Info -->
+        <div>
+            <div class="md-card">
+                <div class="md-card-header">
+                    <div class="md-card-title">
+                        <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">badge</span>
+                        Информация об аккаунте
+                    </div>
+                </div>
+                <div class="md-card-body">
+                    <ul class="md-list" style="padding: 0;">
+                        <li class="md-list-item" style="margin: 0; padding: 12px 0; border-bottom: 1px solid var(--md-outline-variant);">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round md-18">person</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">Логин</div>
+                                <div class="md-list-item-subtitle">{{ current_user.username }}</div>
+                            </div>
+                        </li>
+                        <li class="md-list-item" style="margin: 0; padding: 12px 0; border-bottom: 1px solid var(--md-outline-variant);">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round md-18">admin_panel_settings</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">Роль</div>
+                                <div class="md-list-item-subtitle">
+                                    {% if current_user.is_admin %}
+                                        <span class="md-chip md-chip-filter selected" style="margin-top: 4px;">Администратор</span>
+                                    {% else %}
+                                        <span class="md-chip md-chip-assist" style="margin-top: 4px;">Пользователь</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        <li class="md-list-item" style="margin: 0; padding: 12px 0; border-bottom: 1px solid var(--md-outline-variant);">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round md-18">event</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">Регистрация</div>
+                                <div class="md-list-item-subtitle">{{ current_user.created_at.strftime('%d.%m.%Y') }}</div>
+                            </div>
+                        </li>
+                        <li class="md-list-item" style="margin: 0; padding: 12px 0;">
+                            <span class="md-list-item-icon">
+                                <span class="material-icons-round md-18">vpn_key</span>
+                            </span>
+                            <div class="md-list-item-content">
+                                <div class="md-list-item-title">Конфигурации</div>
+                                <div class="md-list-item-subtitle">
+                                    <span class="md-chip md-chip-assist">{{ config_count }}/{{ current_user.config_limit }}</span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="md-card" style="margin-top: 16px;">
+                <div class="md-card-header">
+                    <div class="md-card-title">
+                        <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">trending_up</span>
+                        Статистика использования
+                    </div>
+                </div>
+                <div class="md-card-body">
+                    <div style="display: flex; justify-content: space-around; text-align: center; padding: 16px 0;">
+                        <div>
+                            <div style="font-size: 2rem; font-weight: 400; color: var(--md-primary);">{{ config_count }}</div>
+                            <div class="text-body-small" style="color: var(--md-on-surface-variant);">Активных<br>конфигураций</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2rem; font-weight: 400; color: var(--google-green);">{{ current_user.config_limit - config_count }}</div>
+                            <div class="text-body-small" style="color: var(--md-on-surface-variant);">Доступно<br>новых</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--md-outline-variant);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span class="text-body-small">Использование лимита</span>
+                            <span class="text-body-small">{{ "%.0f"|format((config_count / current_user.config_limit * 100) if current_user.config_limit > 0 else 0) }}%</span>
+                        </div>
+                        <div class="md-progress-linear">
+                            <div class="md-progress-linear-bar" style="width: {{ (config_count / current_user.config_limit * 100) if current_user.config_limit > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                    
+                    {% if config_count >= current_user.config_limit %}
+                    <div class="md-alert md-alert-warning" style="margin-top: 16px;">
+                        <span class="material-icons-round">warning</span>
+                        <div>
+                            <strong>Лимит достигнут!</strong> Удалите существующие конфигурации или обратитесь к администратору.
+                        </div>
+                    </div>
+                    {% elif current_user.config_limit > 0 and (config_count / current_user.config_limit) > 0.8 %}
+                    <div class="md-alert md-alert-info" style="margin-top: 16px;">
+                        <span class="material-icons-round">info</span>
+                        <div>
+                            <strong>Внимание:</strong> Вы используете более 80% от доступного лимита.
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Change Password -->
+        <div>
+            <div class="md-card">
+                <div class="md-card-header">
+                    <div class="md-card-title">
+                        <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">lock</span>
+                        Смена пароля
+                    </div>
+                </div>
+                <div class="md-card-body">
+                    <form method="POST">
+                        {{ password_form.hidden_tag() }}
+                        
+                        <div class="md-field {% if password_form.current_password.errors %}md-field-error{% endif %}">
+                            <input type="password" 
+                                   class="md-field-input" 
+                                   id="current_password" 
+                                   name="current_password" 
+                                   placeholder=" "
+                                   required>
+                            <label class="md-field-label" for="current_password">Текущий пароль</label>
+                        </div>
+                        {% if password_form.current_password.errors %}
+                            <div class="md-field-helper" style="color: var(--md-error);">
+                                {% for error in password_form.current_password.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="md-field {% if password_form.new_password.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                            <input type="password" 
+                                   class="md-field-input" 
+                                   id="new_password" 
+                                   name="new_password" 
+                                   placeholder=" "
+                                   required>
+                            <label class="md-field-label" for="new_password">Новый пароль</label>
+                        </div>
+                        {% if password_form.new_password.errors %}
+                            <div class="md-field-helper" style="color: var(--md-error);">
+                                {% for error in password_form.new_password.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="md-field-helper">Минимум 3 символа</div>
+
+                        <div class="md-field {% if password_form.confirm_password.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                            <input type="password" 
+                                   class="md-field-input" 
+                                   id="confirm_password" 
+                                   name="confirm_password" 
+                                   placeholder=" "
+                                   required>
+                            <label class="md-field-label" for="confirm_password">Подтвердите пароль</label>
+                        </div>
+                        {% if password_form.confirm_password.errors %}
+                            <div class="md-field-helper" style="color: var(--md-error);">
+                                {% for error in password_form.confirm_password.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <button type="submit" name="submit_password" class="md-btn md-btn-tonal" style="width: 100%; margin-top: 24px;">
+                            <span class="material-icons-round">lock_reset</span>
+                            Изменить пароль
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="md-card" style="margin-top: 16px;">
+                <div class="md-card-header">
+                    <div class="md-card-title">
+                        <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">bolt</span>
+                        Быстрые действия
+                    </div>
+                </div>
+                <div class="md-card-body" style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{{ url_for('user.dashboard') }}" class="md-btn md-btn-filled">
+                        <span class="material-icons-round">home</span>
+                        Главная
+                    </a>
+                    <a href="{{ url_for('user.configs') }}" class="md-btn md-btn-outlined">
+                        <span class="material-icons-round">folder</span>
+                        Мои конфигурации
+                    </a>
+                    {% if current_user.can_create_config() %}
+                    <a href="{{ url_for('user.create_config') }}" class="md-btn md-btn-tonal">
+                        <span class="material-icons-round">add</span>
+                        Создать конфиг
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Мои конфигурации - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 style="font-weight: 400;">Панель управления</h1>
+            <p style="color: var(--md-on-surface-variant); margin: 0;">Обзор системы и статистика</p>
+        </div>
+        {% if current_user.can_create_config() %}
+        <a href="{{ url_for('user.create_config') }}" class="md-fab">
+            <span class="material-icons-round">add</span>
+            Создать конфиг
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+        <div class="stats-card">
+            <div class="stats-card-icon blue">
+                <span class="material-icons-round md-24">vpn_key</span>
+            </div>
+            <div class="stats-card-value">{{ config_count }}</div>
+            <div class="stats-card-label">Мои конфигурации</div>
+            <div class="text-body-small" style="color: var(--md-on-surface-variant); margin-top: 8px;">
+                из {{ config_limit }} доступных
+            </div>
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-card-icon green">
+                <span class="material-icons-round md-24">donut_large</span>
+            </div>
+            <div class="stats-card-value">{{ "%.0f"|format((config_count/config_limit*100) if config_limit > 0 else 0) }}%</div>
+            <div class="stats-card-label">Использование</div>
+            <div style="margin-top: 12px;">
+                <div class="md-progress-linear">
+                    <div class="md-progress-linear-bar" style="width: {{ (config_count/config_limit*100) if config_limit > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-card-icon yellow">
+                <span class="material-icons-round md-24">add_circle</span>
+            </div>
+            <div class="stats-card-value">{{ config_limit - config_count }}</div>
+            <div class="stats-card-label">Доступно</div>
+            <div class="text-body-small" style="color: var(--md-on-surface-variant); margin-top: 8px;">
+                новых конфигов
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    {% if configs or current_user.can_create_config() %}
+    <div class="md-card mb-4">
+        <div class="md-card-header">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">bolt</span>
+                Быстрые действия
+            </div>
+        </div>
+        <div class="md-card-body">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                {% if current_user.can_create_config() %}
+                <a href="{{ url_for('user.create_config') }}" class="md-btn md-btn-filled">
+                    <span class="material-icons-round">add</span>
+                    Создать конфиг
+                </a>
+                {% endif %}
+                {% if configs %}
+                <a href="{{ url_for('user.configs') }}" class="md-btn md-btn-outlined">
+                    <span class="material-icons-round">list</span>
+                    Все конфиги
+                </a>
+                {% endif %}
+                <a href="{{ url_for('user.profile') }}" class="md-btn md-btn-tonal">
+                    <span class="material-icons-round">person</span>
+                    Профиль
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Configurations List -->
+    <div class="md-card">
+        <div class="md-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">folder_open</span>
+                Мои конфигурации
+            </div>
+            {% if configs %}
+            <a href="{{ url_for('user.configs') }}" class="md-btn md-btn-text">
+                Все конфиги
+                <span class="material-icons-round">arrow_forward</span>
+            </a>
+            {% endif %}
+        </div>
+        <div class="md-card-body">
+            {% if configs %}
+                <div class="md-grid md-grid-3">
+                    {% for config in configs[:6] %}
+                    <div class="config-card">
+                        <div class="config-card-header">
+                            <div>
+                                <div class="config-card-title">{{ config.name or 'Без названия' }}</div>
+                                {% if config.config_type %}
+                                    {% if 'clash' in config.config_type.name.lower() %}
+                                        <span class="md-chip md-chip-filter selected" style="margin-top: 8px;">
+                                            {{ config.config_type.name }}
+                                        </span>
+                                    {% elif 'amnezia' in config.config_type.name.lower() %}
+                                        <span class="md-chip md-chip-filter" style="background: #e6f4ea; color: #1e8e3e; margin-top: 8px;">
+                                            {{ config.config_type.name }}
+                                        </span>
+                                    {% else %}
+                                        <span class="md-chip md-chip-assist" style="margin-top: 8px;">
+                                            {{ config.config_type.name }}
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="md-chip md-chip-suggestion" style="margin-top: 8px;">
+                                        WireGuard
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div style="position: relative;">
+                                <button class="menu-btn" onclick="toggleConfigMenu({{ config.id }})">
+                                    <span class="material-icons-round">more_vert</span>
+                                </button>
+                                <div class="md-menu" id="configMenu{{ config.id }}" style="display: none;">
+                                    <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.view_config', config_id=config.id) }}'">
+                                        <span class="material-icons-round">visibility</span>
+                                        Просмотреть
+                                    </div>
+                                    <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.edit_config', config_id=config.id) }}'">
+                                        <span class="material-icons-round">edit</span>
+                                        Редактировать
+                                    </div>
+                                    <div class="md-divider"></div>
+                                    <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.download_config', config_id=config.id) }}'">
+                                        <span class="material-icons-round">download</span>
+                                        Скачать
+                                    </div>
+                                    <div class="md-menu-item" onclick="window.open('{{ url_for('user.config_qr', config_id=config.id) }}', '_blank')">
+                                        <span class="material-icons-round">qr_code</span>
+                                        QR-код
+                                    </div>
+                                    <div class="md-divider"></div>
+                                    <div class="md-menu-item" style="color: var(--md-error);" onclick="confirmDelete('{{ config.name or 'Без названия' }}', {{ config.id }})">
+                                        <span class="material-icons-round">delete</span>
+                                        Удалить
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-card-body">
+                            <div class="config-card-info">
+                                <div class="config-card-info-item">
+                                    <span class="material-icons-round md-18">dns</span>
+                                    {{ config.endpoint_ref.name }}
+                                </div>
+                                <div class="config-card-info-item">
+                                    <span class="material-icons-round md-18">schedule</span>
+                                    {{ config.created_at.strftime('%d.%m.%Y %H:%M') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-card-footer" style="justify-content: center; gap: 12px;">
+                            <a href="{{ url_for('user.view_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-outlined" title="Открыть">
+                                <span class="material-icons-round md-20">visibility</span>
+                            </a>
+                            <a href="{{ url_for('user.config_qr', config_id=config.id) }}" target="_blank" class="md-btn md-btn-icon md-btn-outlined" title="QR-код">
+                                <span class="material-icons-round md-20">qr_code</span>
+                            </a>
+                            <a href="{{ url_for('user.download_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-outlined" title="Скачать">
+                                <span class="material-icons-round md-20">download</span>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <span class="material-icons-round" style="font-size: 48px;">folder_open</span>
+                    </div>
+                    <h3 class="empty-state-title">У вас пока нет конфигураций</h3>
+                    <p class="empty-state-description">Создайте свою первую WARP конфигурацию для начала работы</p>
+                    {% if current_user.can_create_config() %}
+                    <a href="{{ url_for('user.create_config') }}" class="md-fab">
+                        <span class="material-icons-round">add</span>
+                        Создать конфиг
+                    </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="md-dialog" style="margin: 16px;">
+        <div class="md-dialog-title">
+            <span class="material-icons-round" style="color: var(--md-error); vertical-align: middle; margin-right: 8px;">warning</span>
+            Подтверждение удаления
+        </div>
+        <div class="md-dialog-content">
+            Вы уверены, что хотите удалить конфигурацию "<span id="deleteConfigName"></span>"?
+            <br><br>
+            <strong style="color: var(--md-error);">Это действие нельзя отменить.</strong>
+        </div>
+        <div class="md-dialog-actions">
+            <button class="md-btn md-btn-text" onclick="closeDeleteModal()">Отмена</button>
+            <form id="deleteForm" method="POST" style="display: inline;">
+                <button type="submit" class="md-btn md-btn-filled" style="background-color: var(--md-error); color: var(--md-on-error);">
+                    <span class="material-icons-round">delete</span>
+                    Удалить
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleConfigMenu(configId) {
+    const menu = document.getElementById('configMenu' + configId);
+    // Close only other config menus, not user menu
+    document.querySelectorAll('[id^="configMenu"]').forEach(m => {
+        if (m !== menu) m.style.display = 'none';
+    });
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function confirmDelete(configName, configId) {
+    document.getElementById('deleteConfigName').textContent = configName;
+    document.getElementById('deleteForm').action = '/user/configs/' + configId + '/delete';
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// Close config menus when clicking outside (but not user menu)
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.config-card-header')) {
+        document.querySelectorAll('[id^="configMenu"]').forEach(m => m.style.display = 'none');
+    }
+});
+</script>
+{% endblock %}

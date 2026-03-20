@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Создание конфигурации - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <!-- Breadcrumbs -->
+    <div class="md-breadcrumbs">
+        <a href="{{ url_for('user.dashboard') }}">Главная</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <span class="md-breadcrumbs-current">Создать конфигурацию</span>
+    </div>
+
+    <div class="md-grid md-grid-2" style="align-items: start;">
+        <!-- Main Form -->
+        <div class="md-card">
+            <div class="md-card-header">
+                <div class="md-card-title">
+                    <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">add_circle</span>
+                    Создание новой конфигурации
+                </div>
+            </div>
+            <div class="md-card-body">
+                <form method="POST" data-loading="true" id="createConfigForm">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="md-field {% if form.name.errors %}md-field-error{% endif %}">
+                        <input type="text" 
+                               class="md-field-input" 
+                               id="name" 
+                               name="name" 
+                               placeholder=" "
+                               value="{{ form.name.data or '' }}">
+                        <label class="md-field-label" for="name">Название (необязательно)</label>
+                    </div>
+                    {% if form.name.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">
+                            {% for error in form.name.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="md-field-helper">
+                        Если поле пустое, будет создано автоматическое название
+                    </div>
+
+                    <div class="md-field {% if form.endpoint_id.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                        <select class="md-select" id="endpointSelect" name="endpoint_id" required>
+                            <option value="">Выберите endpoint</option>
+                            {% for choice in form.endpoint_id.choices %}
+                            <option value="{{ choice[0] }}" {% if form.endpoint_id.data == choice[0] %}selected{% endif %}>{{ choice[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if form.endpoint_id.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">
+                            {% for error in form.endpoint_id.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="md-field-helper">
+                        Выберите сервер для подключения
+                    </div>
+
+                    <div class="md-field {% if form.config_type_id.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                        <select class="md-select" id="configTypeSelect" name="config_type_id" required>
+                            <option value="">Выберите тип конфигурации</option>
+                        </select>
+                    </div>
+                    {% if form.config_type_id.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">
+                            {% for error in form.config_type_id.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Progress Info -->
+                    <div class="md-card md-card-filled" style="margin-top: 24px;">
+                        <div class="md-card-body">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="material-icons-round" style="color: var(--md-primary);">info</span>
+                                <div>
+                                    <div style="font-weight: 500;">Лимит конфигураций</div>
+                                    <div class="text-body-small" style="color: var(--md-on-surface-variant);">
+                                        {{ current_user.get_config_count() }} из {{ current_user.config_limit }} использовано
+                                    </div>
+                                    <div class="md-progress-linear" style="margin-top: 8px; max-width: 200px;">
+                                        <div class="md-progress-linear-bar" style="width: {{ (current_user.get_config_count() / current_user.config_limit * 100) if current_user.config_limit > 0 else 0 }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                        <a href="{{ url_for('user.dashboard') }}" class="md-btn md-btn-text">
+                            <span class="material-icons-round">arrow_back</span>
+                            Назад
+                        </a>
+                        <button type="submit" class="md-btn md-btn-filled" id="submitBtn">
+                            <span class="material-icons-round">add</span>
+                            Создать конфиг
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Sidebar Info -->
+        <div>
+            <div class="md-card md-card-outlined">
+                <div class="md-card-header">
+                    <div class="md-card-title">
+                        <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">help</span>
+                        Доступные типы
+                    </div>
+                </div>
+                <div class="md-card-body">
+                    <div id="availableTypesInfo">
+                        <p style="color: var(--md-on-surface-variant); margin: 0;">
+                            Выберите endpoint чтобы увидеть доступные типы конфигураций.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="md-card" style="margin-top: 16px; background: #fef3e8; border: 1px solid #f9ab00;">
+                <div class="md-card-body">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span class="material-icons-round" style="color: #f9ab00;">warning</span>
+                        <div>
+                            <div style="font-weight: 500; color: #b06000;">Важно</div>
+                            <p style="color: #b06000; margin: 8px 0 0 0; font-size: 0.875rem;">
+                                <strong>Создание занимает время:</strong> Процесс может занять 10-30 секунд,
+                                так как происходит регистрация в серверной инфраструктуре. Не закрывайте страницу!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if current_user.get_config_count() >= current_user.config_limit %}
+            <div class="md-card" style="margin-top: 16px; background: #fce8e6; border: 1px solid #d93025;">
+                <div class="md-card-body">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span class="material-icons-round" style="color: #d93025;">error</span>
+                        <div>
+                            <div style="font-weight: 500; color: #d93025;">Лимит достигнут</div>
+                            <p style="color: #d93025; margin: 8px 0 0 0; font-size: 0.875rem;">
+                                Вы достигли максимального количества конфигураций ({{ current_user.config_limit }}). 
+                                Удалите существующие конфигурации или обратитесь к администратору.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const endpointSelect = document.getElementById('endpointSelect');
+    const configTypeSelect = document.getElementById('configTypeSelect');
+    const availableTypesInfo = document.getElementById('availableTypesInfo');
+    
+    async function loadConfigTypes(endpointId) {
+        if (!endpointId) return;
+        
+        try {
+            const url = `{{ url_for('user.get_endpoint_config_types', endpoint_id=0) }}`.replace('/0', '/' + endpointId);
+            const response = await fetch(url);
+            const configTypes = await response.json();
+            
+            configTypeSelect.innerHTML = '<option value="">Выберите тип конфигурации</option>';
+            
+            if (configTypes.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Нет доступных типов';
+                configTypeSelect.appendChild(option);
+                configTypeSelect.disabled = true;
+                availableTypesInfo.innerHTML = '<p style="color: var(--md-error);">Для этого endpoint нет доступных типов.</p>';
+            } else {
+                configTypeSelect.disabled = false;
+                configTypes.forEach(ct => {
+                    const option = document.createElement('option');
+                    option.value = ct.id;
+                    option.textContent = ct.name;
+                    configTypeSelect.appendChild(option);
+                });
+                
+                // Update info
+                let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+                configTypes.forEach(ct => {
+                    html += `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--md-surface-variant); border-radius: 8px;">
+                            <span class="material-icons-round" style="color: var(--md-primary);">check_circle</span>
+                            <div>
+                                <div style="font-weight: 500;">${ct.name}</div>
+                                <div style="font-size: 0.75rem; color: var(--md-on-surface-variant);">${ct.description || ''}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                availableTypesInfo.innerHTML = html;
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки типов:', error);
+        }
+    }
+    
+    endpointSelect.addEventListener('change', function() {
+        loadConfigTypes(this.value);
+    });
+    
+    // Load types if endpoint already selected
+    if (endpointSelect.value) {
+        loadConfigTypes(endpointSelect.value);
+    }
+    
+    // Form loading state
+    document.getElementById('createConfigForm').addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-round" style="animation: md-progress-rotate 1s linear infinite;">refresh</span> Создание...';
+    });
+});
+</script>
+{% endblock %}

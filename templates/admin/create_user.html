@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Создание пользователя - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <!-- Breadcrumbs -->
+    <div class="md-breadcrumbs">
+        <a href="{{ url_for('admin.dashboard') }}">Панель управления</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <a href="{{ url_for('admin.users') }}">Пользователи</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <span class="md-breadcrumbs-current">Создать пользователя</span>
+    </div>
+
+    <div class="md-grid md-grid-2" style="align-items: start;">
+        <!-- Create User Form -->
+        <div class="md-card">
+            <div class="md-card-header">
+                <div class="md-card-title">
+                    <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">person_add</span>
+                    Создание нового пользователя
+                </div>
+            </div>
+            <div class="md-card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="md-field {% if form.username.errors %}md-field-error{% endif %}">
+                        <input type="text" 
+                               class="md-field-input" 
+                               id="username" 
+                               name="username" 
+                               placeholder=" "
+                               value="{{ form.username.data or '' }}"
+                               required>
+                        <label class="md-field-label" for="username">Логин</label>
+                    </div>
+                    {% if form.username.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">
+                            {% for error in form.username.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="md-field-helper">Минимум 3 символа, только латинские буквы, цифры и _</div>
+
+                    <div class="md-field {% if form.password.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                        <input type="password" 
+                               class="md-field-input" 
+                               id="password" 
+                               name="password" 
+                               placeholder=" "
+                               required>
+                        <label class="md-field-label" for="password">Пароль</label>
+                    </div>
+                    {% if form.password.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">
+                            {% for error in form.password.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="md-field-helper">Минимум 3 символа</div>
+
+                    <div class="md-field {% if form.config_limit.errors %}md-field-error{% endif %}" style="margin-top: 16px;">
+                        <input type="number" 
+                               class="md-field-input" 
+                               id="config_limit" 
+                               name="config_limit" 
+                               placeholder=" "
+                               value="{{ form.config_limit.data or '5' }}"
+                               required>
+                        <label class="md-field-label" for="config_limit">Лимит конфигураций</label>
+                    </div>
+                    {% if form.config_limit.errors %}
+                        <div class="md-field-helper" style="color: var(--md-error);">
+                            {% for error in form.config_limit.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="md-field-helper">Максимальное количество конфигураций</div>
+
+                    <div style="margin-top: 24px; padding: 16px; background: var(--md-surface-variant); border-radius: 8px;">
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="checkbox" name="is_admin" value="y" {% if form.is_admin.data %}checked{% endif %} style="width: 18px; height: 18px;">
+                            <span>
+                                <div style="font-weight: 500;">Администратор</div>
+                                <div class="text-body-small" style="color: var(--md-on-surface-variant);">Полный доступ к управлению системой</div>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                        <a href="{{ url_for('admin.users') }}" class="md-btn md-btn-text">
+                            <span class="material-icons-round">arrow_back</span>
+                            Назад
+                        </a>
+                        <button type="submit" class="md-btn md-btn-filled">
+                            <span class="material-icons-round">person_add</span>
+                            Создать пользователя
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Sidebar Info -->
+        <div>
+            <div class="md-card md-card-outlined">
+                <div class="md-card-header">
+                    <div class="md-card-title">
+                        <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">info</span>
+                        Информация
+                    </div>
+                </div>
+                <div class="md-card-body">
+                    <div style="margin-bottom: 24px;">
+                        <div style="font-weight: 500; margin-bottom: 12px;">Роли пользователей</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="md-chip md-chip-filter selected">Администратор</span>
+                                <span class="text-body-small" style="color: var(--md-on-surface-variant);">Полный доступ к системе</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="md-chip md-chip-assist">Пользователь</span>
+                                <span class="text-body-small" style="color: var(--md-on-surface-variant);">Создание и управление конфигурациями</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="md-divider"></div>
+                    
+                    <div style="margin-top: 24px;">
+                        <div style="font-weight: 500; margin-bottom: 12px;">Лимиты конфигураций</div>
+                        <ul style="color: var(--md-on-surface-variant); font-size: 0.875rem; padding-left: 20px; margin: 0;">
+                            <li>По умолчанию: 5 конфигураций</li>
+                            <li>Рекомендуется: 10-20 для активных пользователей</li>
+                            <li>Максимум: 100 для доверенных пользователей</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Все конфигурации - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <div class="page-header">
+        <div>
+            <h1 style="font-weight: 400;">Все конфигурации</h1>
+            <p style="color: var(--md-on-surface-variant); margin: 0;">Просмотр всех WARP конфигураций в системе</p>
+        </div>
+    </div>
+
+    <div class="md-card">
+        <div class="md-card-header">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">list</span>
+                Список конфигураций
+            </div>
+        </div>
+        <div class="md-card-body">
+            {% if configs.items %}
+                <div class="md-table-container">
+                    <table class="md-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Пользователь</th>
+                                <th>Endpoint</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for config in configs.items %}
+                            <tr>
+                                <td>{{ config.id }}</td>
+                                <td><strong>{{ config.name or 'Без названия' }}</strong></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span>{{ config.owner.username }}</span>
+                                        {% if config.owner.is_admin %}
+                                            <span class="md-chip md-chip-filter selected" style="font-size: 0.625rem;">Admin</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin.endpoint_configs', endpoint_id=config.endpoint_ref.id) }}" style="color: var(--md-primary); text-decoration: none;">
+                                        {{ config.endpoint_ref.name }}
+                                    </a>
+                                    <div style="font-size: 0.75rem; color: var(--md-on-surface-variant);">
+                                        {{ config.endpoint_ref.full_address }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 8px;">
+                                        <a href="{{ url_for('user.view_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-tonal" title="Просмотреть">
+                                            <span class="material-icons-round md-18">visibility</span>
+                                        </a>
+                                        <a href="{{ url_for('user.download_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-outlined" title="Скачать">
+                                            <span class="material-icons-round md-18">download</span>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if configs.pages > 1 %}
+                <div style="display: flex; justify-content: center; margin-top: 24px;">
+                    <div style="display: flex; gap: 8px;">
+                        {% if configs.has_prev %}
+                        <a href="{{ url_for('admin.configs', page=configs.prev_num) }}" class="md-btn md-btn-outlined md-btn-small">
+                            <span class="material-icons-round md-18">chevron_left</span>
+                            Назад
+                        </a>
+                        {% endif %}
+                        
+                        {% for page_num in configs.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != configs.page %}
+                                <a href="{{ url_for('admin.configs', page=page_num) }}" class="md-btn md-btn-text md-btn-small">{{ page_num }}</a>
+                                {% else %}
+                                <button class="md-btn md-btn-filled md-btn-small" disabled>{{ page_num }}</button>
+                                {% endif %}
+                            {% else %}
+                            <span style="align-self: center; color: var(--md-on-surface-variant);">...</span>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if configs.has_next %}
+                        <a href="{{ url_for('admin.configs', page=configs.next_num) }}" class="md-btn md-btn-outlined md-btn-small">
+                            Вперед
+                            <span class="material-icons-round md-18">chevron_right</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <span class="material-icons-round" style="font-size: 48px;">folder_open</span>
+                    </div>
+                    <h3 class="empty-state-title">Конфигурации не найдены</h3>
+                    <p class="empty-state-description">В системе пока нет созданных конфигураций</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

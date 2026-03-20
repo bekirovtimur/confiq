@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Управление пользователями - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 style="font-weight: 400;">Управление пользователями</h1>
+            <p style="color: var(--md-on-surface-variant); margin: 0;">Создание и управление пользователями системы</p>
+        </div>
+        <a href="{{ url_for('admin.create_user') }}" class="md-fab">
+            <span class="material-icons-round">person_add</span>
+            Создать пользователя
+        </a>
+    </div>
+
+    <!-- Users Table -->
+    <div class="md-card">
+        <div class="md-card-header">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">list</span>
+                Список пользователей
+            </div>
+        </div>
+        <div class="md-card-body">
+            {% if users.items %}
+                <div class="md-table-container">
+                    <table class="md-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Логин</th>
+                                <th>Роль</th>
+                                <th>Конфиги</th>
+                                <th>Лимит</th>
+                                <th>Создан</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users.items %}
+                            <tr>
+                                <td>{{ user.id }}</td>
+                                <td>
+                                    <strong>{{ user.username }}</strong>
+                                    {% if user.id == current_user.id %}
+                                        <span class="md-chip md-chip-filter" style="margin-left: 8px; font-size: 0.625rem;">Вы</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="md-chip md-chip-filter selected">Администратор</span>
+                                    {% else %}
+                                        <span class="md-chip md-chip-assist">Пользователь</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="md-chip md-chip-assist">{{ user.get_config_count() }}</span>
+                                </td>
+                                <td>{{ user.config_limit }}</td>
+                                <td style="color: var(--md-on-surface-variant);">
+                                    {{ user.created_at.strftime('%d.%m.%Y %H:%M') }}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 8px;">
+                                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" 
+                                           class="md-btn md-btn-icon md-btn-tonal" title="Редактировать">
+                                            <span class="material-icons-round md-18">edit</span>
+                                        </a>
+                                        {% if user.id != current_user.id %}
+                                        <button class="md-btn md-btn-icon md-btn-text" 
+                                                style="color: var(--md-error);"
+                                                onclick="confirmDelete('{{ user.username }}', {{ user.id }})" 
+                                                title="Удалить">
+                                            <span class="material-icons-round md-18">delete</span>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if users.pages > 1 %}
+                <div style="display: flex; justify-content: center; margin-top: 24px;">
+                    <div style="display: flex; gap: 8px;">
+                        {% if users.has_prev %}
+                        <a href="{{ url_for('admin.users', page=users.prev_num) }}" class="md-btn md-btn-outlined md-btn-small">
+                            <span class="material-icons-round md-18">chevron_left</span>
+                            Назад
+                        </a>
+                        {% endif %}
+                        
+                        {% for page_num in users.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != users.page %}
+                                <a href="{{ url_for('admin.users', page=page_num) }}" class="md-btn md-btn-text md-btn-small">{{ page_num }}</a>
+                                {% else %}
+                                <button class="md-btn md-btn-filled md-btn-small" disabled>{{ page_num }}</button>
+                                {% endif %}
+                            {% else %}
+                            <span style="align-self: center; color: var(--md-on-surface-variant);">...</span>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if users.has_next %}
+                        <a href="{{ url_for('admin.users', page=users.next_num) }}" class="md-btn md-btn-outlined md-btn-small">
+                            Вперед
+                            <span class="material-icons-round md-18">chevron_right</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <span class="material-icons-round" style="font-size: 48px;">people_outline</span>
+                    </div>
+                    <h3 class="empty-state-title">Пользователи не найдены</h3>
+                    <p class="empty-state-description">Создайте первого пользователя для начала работы</p>
+                    <a href="{{ url_for('admin.create_user') }}" class="md-fab">
+                        <span class="material-icons-round">person_add</span>
+                        Создать пользователя
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="md-dialog" style="margin: 16px; max-width: 500px;">
+        <div class="md-dialog-title">
+            <span class="material-icons-round" style="color: var(--md-error); vertical-align: middle; margin-right: 8px;">warning</span>
+            Подтверждение удаления
+        </div>
+        <div class="md-dialog-content">
+            <p>Вы действительно хотите удалить пользователя <strong id="deleteUsername"></strong>?</p>
+            <div class="md-alert md-alert-warning" style="margin-top: 16px;">
+                <span class="material-icons-round">warning</span>
+                <div>
+                    <strong>Внимание!</strong> Все конфигурации пользователя будут также удалены и отозваны из Cloudflare.
+                </div>
+            </div>
+        </div>
+        <div class="md-dialog-actions">
+            <button class="md-btn md-btn-text" onclick="closeDeleteModal()">Отмена</button>
+            <form id="deleteForm" method="POST" style="display: inline;">
+                <button type="submit" class="md-btn md-btn-filled" style="background-color: var(--md-error); color: var(--md-on-error);">
+                    <span class="material-icons-round">delete</span>
+                    Удалить
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function confirmDelete(username, userId) {
+    document.getElementById('deleteUsername').textContent = username;
+    document.getElementById('deleteForm').action = "/admin/users/" + userId + "/delete";
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+</script>
+{% endblock %}

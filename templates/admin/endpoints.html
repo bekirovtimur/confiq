@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Управление Endpoints - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 style="font-weight: 400;">Управление Endpoints</h1>
+            <p style="color: var(--md-on-surface-variant); margin: 0;">Серверы для подключения к WARP</p>
+        </div>
+        <a href="{{ url_for('admin.create_endpoint') }}" class="md-fab">
+            <span class="material-icons-round">add</span>
+            Добавить Endpoint
+        </a>
+    </div>
+
+    <!-- Endpoints Table -->
+    <div class="md-card">
+        <div class="md-card-header">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">dns</span>
+                Список Endpoints
+            </div>
+        </div>
+        <div class="md-card-body">
+            {% if endpoints %}
+                <div class="md-table-container">
+                    <table class="md-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Адрес</th>
+                                <th>Порт</th>
+                                <th>Конфиги</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for endpoint in endpoints %}
+                            <tr>
+                                <td>{{ endpoint.id }}</td>
+                                <td><strong>{{ endpoint.name }}</strong></td>
+                                <td><code>{{ endpoint.address }}</code></td>
+                                <td><span class="md-chip md-chip-suggestion">{{ endpoint.port }}</span></td>
+                                <td>
+                                    {% if endpoint.configs|length > 0 %}
+                                        <a href="{{ url_for('admin.endpoint_configs', endpoint_id=endpoint.id) }}" class="md-chip md-chip-filter">
+                                            {{ endpoint.configs|length }}
+                                        </a>
+                                    {% else %}
+                                        <span class="md-chip md-chip-suggestion">0</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 8px;">
+                                        <a href="{{ url_for('admin.edit_endpoint', endpoint_id=endpoint.id) }}"
+                                           class="md-btn md-btn-icon md-btn-tonal" title="Редактировать">
+                                            <span class="material-icons-round md-18">edit</span>
+                                        </a>
+                                        {% if endpoint.configs|length > 0 %}
+                                        <a href="{{ url_for('admin.endpoint_configs', endpoint_id=endpoint.id) }}"
+                                           class="md-btn md-btn-icon md-btn-outlined" title="Просмотр конфигураций">
+                                            <span class="material-icons-round md-18">visibility</span>
+                                        </a>
+                                        {% else %}
+                                        <button class="md-btn md-btn-icon md-btn-text" 
+                                                style="color: var(--md-error);"
+                                                onclick="confirmDelete('{{ endpoint.name }}', {{ endpoint.id }})" 
+                                                title="Удалить">
+                                            <span class="material-icons-round md-18">delete</span>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <span class="material-icons-round" style="font-size: 48px;">dns</span>
+                    </div>
+                    <h3 class="empty-state-title">Endpoints не найдены</h3>
+                    <p class="empty-state-description">Создайте первый endpoint для работы с WARP</p>
+                    <a href="{{ url_for('admin.create_endpoint') }}" class="md-fab">
+                        <span class="material-icons-round">add</span>
+                        Добавить Endpoint
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="md-dialog" style="margin: 16px;">
+        <div class="md-dialog-title">
+            <span class="material-icons-round" style="color: var(--md-error); vertical-align: middle; margin-right: 8px;">warning</span>
+            Подтверждение удаления
+        </div>
+        <div class="md-dialog-content">
+            Вы уверены, что хотите удалить endpoint "<span id="deleteEndpointName"></span>"?
+        </div>
+        <div class="md-dialog-actions">
+            <button class="md-btn md-btn-text" onclick="closeDeleteModal()">Отмена</button>
+            <form id="deleteForm" method="POST" style="display: inline;">
+                <button type="submit" class="md-btn md-btn-filled" style="background-color: var(--md-error); color: var(--md-on-error);">
+                    <span class="material-icons-round">delete</span>
+                    Удалить
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function confirmDelete(name, id) {
+    document.getElementById('deleteEndpointName').textContent = name;
+    document.getElementById('deleteForm').action = "/admin/endpoints/" + id + "/delete";
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+</script>
+{% endblock %}
