@@ -33,7 +33,7 @@
 
 ```bash
 # 1. Клонирование репозитория
-git clone https://github.com/bekirovtimur/confiq
+git clone https://github.com/bekirovtimur/confiq.git
 cd confiq
 
 # 2. Настройка .env файла
