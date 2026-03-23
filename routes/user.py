@@ -259,7 +259,12 @@ def config_qr(config_id):
     config = Config.query.filter_by(id=config_id, user_id=current_user.id).first_or_404()
     
     # Генерируем QR-код
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=5
+    )
     qr.add_data(config.config_content)
     qr.make(fit=True)
     
