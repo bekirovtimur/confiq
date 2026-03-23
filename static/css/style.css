@@ -1849,3 +1849,98 @@ h6 {
     background-color: var(--md-primary-container);
     opacity: 0.9;
 }
+
+/* Info Content Styling - for admin-editable info blocks */
+.info-content {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--md-on-surface);
+}
+
+.info-content p {
+    margin-bottom: 12px;
+}
+
+.info-content p:last-child {
+    margin-bottom: 0;
+}
+
+.info-content a {
+    color: var(--md-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.info-content a:hover {
+    text-decoration: underline;
+}
+
+.info-content strong {
+    font-weight: 600;
+    color: var(--md-on-surface);
+}
+
+.info-content em {
+    font-style: italic;
+}
+
+.info-content ul,
+.info-content ol {
+    margin: 12px 0;
+    padding-left: 24px;
+}
+
+.info-content li {
+    margin-bottom: 8px;
+}
+
+.info-content li:last-child {
+    margin-bottom: 0;
+}
+
+.info-content code {
+    background-color: var(--md-surface-variant);
+    padding: 2px 6px;
+    border-radius: var(--md-shape-small);
+    font-family: var(--md-font-mono);
+    font-size: 0.875rem;
+}
+
+.info-content blockquote {
+    border-left: 4px solid var(--md-primary);
+    padding: 8px 16px;
+    margin: 12px 0;
+    background-color: var(--md-surface-variant);
+    border-radius: 0 var(--md-shape-small) var(--md-shape-small) 0;
+}
+
+.info-content hr {
+    border: none;
+    border-top: 1px solid var(--md-outline-variant);
+    margin: 16px 0;
+}
+
+.info-content h1,
+.info-content h2,
+.info-content h3,
+.info-content h4 {
+    font-weight: 500;
+    margin: 16px 0 12px 0;
+    color: var(--md-on-surface);
+}
+
+.info-content h1 {
+    font-size: 1.25rem;
+}
+
+.info-content h2 {
+    font-size: 1.125rem;
+}
+
+.info-content h3 {
+    font-size: 1rem;
+}
+
+.info-content h4 {
+    font-size: 0.9375rem;
+}

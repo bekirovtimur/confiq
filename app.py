@@ -178,5 +178,28 @@ def inject_user_data():
     from flask_login import current_user
     return dict(current_user=current_user)
 
+@app.context_processor
+def inject_info_content():
+    """Загружает содержимое info.html для отображения на страницах пользователя"""
+    info_content = ''
+    # Проверяем переменную окружения INFO_BANNER
+    info_banner_enabled = os.getenv('INFO_BANNER', 'true').lower() in ('true', '1', 'yes', 'on')
+    
+    if info_banner_enabled:
+        info_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'info.html')
+        try:
+            if os.path.exists(info_file_path):
+                with open(info_file_path, 'r', encoding='utf-8') as f:
+                    # Читаем содержимое и удаляем HTML-комментарии в начале
+                    content = f.read()
+                    # Удаляем HTML-комментарии
+                    import re
+                    content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
+                    info_content = content.strip()
+        except Exception as e:
+            app.logger.warning(f"Не удалось загрузить info.html: {e}")
+    
+    return dict(info_content=info_content)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)

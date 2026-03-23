@@ -148,6 +148,21 @@
                 </div>
             </div>
 
+            <!-- Info Block -->
+            {% if info_content %}
+            <div class="md-card" style="margin-top: 16px;">
+                <div class="md-card-header">
+                    <div class="md-card-title">
+                        <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">info</span>
+                        Информация
+                    </div>
+                </div>
+                <div class="md-card-body info-content">
+                    {{ info_content|safe }}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- How to Use (Fallback) -->
             {% if not config_type or not config_type.usage_instructions %}
             <div class="md-card" style="margin-top: 16px;">

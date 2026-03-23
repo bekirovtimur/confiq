@@ -8,7 +8,7 @@
     <div class="page-header">
         <div>
             <h1 style="font-weight: 400;">Управление конфигурациями</h1>
-            <p style="color: var(--md-on-surface-variant); margin: 0;">Управление всеми вашими WARP конфигурациями</p>
+            <p style="color: var(--md-on-surface-variant); margin: 0;">Управление всеми вашими конфигурациями</p>
         </div>
         {% if current_user.can_create_config() %}
         <a href="{{ url_for('user.create_config') }}" class="md-fab">
@@ -47,6 +47,21 @@
             <div class="stats-card-label">Доступно</div>
         </div>
     </div>
+
+    <!-- Info Block -->
+    {% if info_content %}
+    <div class="md-card mb-4">
+        <div class="md-card-header">
+            <div class="md-card-title">
+                <span class="material-icons-round" style="vertical-align: middle; margin-right: 8px; color: var(--md-primary);">info</span>
+                Информация
+            </div>
+        </div>
+        <div class="md-card-body info-content">
+            {{ info_content|safe }}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Configurations Grid -->
     {% if configs.items %}
