@@ -10,10 +10,16 @@
             <h1 style="font-weight: 400;">Управление пользователями</h1>
             <p style="color: var(--md-on-surface-variant); margin: 0;">Создание и управление пользователями системы</p>
         </div>
-        <a href="{{ url_for('admin.create_user') }}" class="md-fab">
-            <span class="material-icons-round">person_add</span>
-            Создать пользователя
-        </a>
+        <div style="display: flex; gap: 12px;">
+            <a href="{{ url_for('admin.groups') }}" class="md-btn md-btn-outlined">
+                <span class="material-icons-round">groups</span>
+                Группы
+            </a>
+            <a href="{{ url_for('admin.create_user') }}" class="md-fab">
+                <span class="material-icons-round">person_add</span>
+                Создать пользователя
+            </a>
+        </div>
     </div>
 
     <!-- Users Table -->
@@ -32,6 +38,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Логин</th>
+                                <th>Группа</th>
                                 <th>Роль</th>
                                 <th>Конфиги</th>
                                 <th>Лимит</th>
@@ -47,6 +54,13 @@
                                     <strong>{{ user.username }}</strong>
                                     {% if user.id == current_user.id %}
                                         <span class="md-chip md-chip-filter" style="margin-left: 8px; font-size: 0.625rem;">Вы</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.group %}
+                                        <span class="md-chip md-chip-assist" title="{{ user.group.description or '' }}">{{ user.group.name }}</span>
+                                    {% else %}
+                                        <span class="md-chip md-chip-assist" style="opacity: 0.5;">-</span>
                                     {% endif %}
                                 </td>
                                 <td>

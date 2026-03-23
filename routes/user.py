@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField, PasswordField
 from wtforms.validators import DataRequired, Length, Optional, EqualTo
-from models import db, User, Endpoint, Config, ConfigType
+from models import db, User, Endpoint, Config, ConfigType, Group
 from warp.client import WarpAPI
 import qrcode
 import io
@@ -68,7 +68,18 @@ def create_config():
     form = CreateConfigForm()
     
     # Заполняем список доступных endpoints
-    endpoints = Endpoint.query.all()
+    # Если у пользователя есть группа, показываем только endpoints из его группы
+    if current_user.group_id:
+        user_group = Group.query.get(current_user.group_id)
+        if user_group and user_group.endpoints:
+            endpoints = user_group.endpoints
+        else:
+            # Если у группы нет endpoints, показываем все (обратная совместимость)
+            endpoints = Endpoint.query.all()
+    else:
+        # Если у пользователя нет группы, показываем все endpoints
+        endpoints = Endpoint.query.all()
+    
     form.endpoint_id.choices = [(ep.id, f"{ep.name} ({ep.full_address})") for ep in endpoints]
     
     if not endpoints:
@@ -104,6 +115,13 @@ def create_config():
     if form.validate_on_submit():
         endpoint = Endpoint.query.get_or_404(form.endpoint_id.data)
         config_type = ConfigType.query.get_or_404(form.config_type_id.data)
+        
+        # Проверяем, доступен ли endpoint пользователю
+        if current_user.group_id:
+            user_group = Group.query.get(current_user.group_id)
+            if user_group and user_group.endpoints and endpoint not in user_group.endpoints:
+                flash('Выбранный endpoint недоступен для вашей группы.', 'danger')
+                return redirect(url_for('user.create_config'))
         
         # Проверяем, поддерживает ли endpoint выбранный тип
         if config_type not in endpoint.config_types:
@@ -162,6 +180,13 @@ def create_config():
 def get_endpoint_config_types(endpoint_id):
     """API endpoint для получения типов конфигураций для выбранного endpoint"""
     endpoint = Endpoint.query.get_or_404(endpoint_id)
+    
+    # Проверяем, доступен ли endpoint пользователю
+    if current_user.group_id:
+        user_group = Group.query.get(current_user.group_id)
+        if user_group and user_group.endpoints and endpoint not in user_group.endpoints:
+            return jsonify({'error': 'Endpoint not available for your group'}), 403
+    
     config_types = endpoint.config_types
     
     # Логирование для диагностики

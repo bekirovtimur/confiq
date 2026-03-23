@@ -76,6 +76,16 @@
                     {% endif %}
                     <div class="md-field-helper">Максимальное количество конфигураций</div>
 
+                    <div class="md-field" style="margin-top: 16px;">
+                        <label class="md-field-label" for="group_id" style="position: static; transform: none; margin-bottom: 8px; display: block;">Группа</label>
+                        <select class="md-field-input" id="group_id" name="group_id" style="padding: 12px;">
+                            {% for id, name in form.group_id.choices %}
+                            <option value="{{ id }}" {% if form.group_id.data == id %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="md-field-helper">Группа определяет доступные endpoints для пользователя</div>
+
                     <div style="margin-top: 24px; padding: 16px; background: var(--md-surface-variant); border-radius: 8px;">
                         <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
                             <input type="checkbox" name="is_admin" value="y" {% if form.is_admin.data %}checked{% endif %} style="width: 18px; height: 18px;">

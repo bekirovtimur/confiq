@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, BooleanField, PasswordField, SubmitField, SelectField, TextAreaField, SelectMultipleField
 from wtforms.validators import DataRequired, Length, NumberRange, IPAddress, Optional
-from models import db, User, Endpoint, Config, ConfigType
+from models import db, User, Endpoint, Config, ConfigType, Group
 from warp.client import WarpAPI
 from functools import wraps
 
@@ -23,6 +23,7 @@ class UserForm(FlaskForm):
     username = StringField('Логин', validators=[DataRequired(), Length(min=3, max=80)])
     password = PasswordField('Пароль', validators=[DataRequired(), Length(min=3)])
     config_limit = IntegerField('Лимит конфигов', validators=[DataRequired(), NumberRange(min=1, max=100)], default=5)
+    group_id = SelectField('Группа', coerce=int, validators=[Optional()])
     is_admin = BooleanField('Права администратора')
     submit = SubmitField('Создать пользователя')
 
@@ -30,6 +31,7 @@ class EditUserForm(FlaskForm):
     username = StringField('Логин', validators=[DataRequired(), Length(min=3, max=80)])
     password = PasswordField('Новый пароль (оставьте пустым, чтобы не менять)', validators=[Optional(), Length(min=3)])
     config_limit = IntegerField('Лимит конфигов', validators=[DataRequired(), NumberRange(min=1, max=100)])
+    group_id = SelectField('Группа', coerce=int, validators=[Optional()])
     is_admin = BooleanField('Права администратора')
     submit = SubmitField('Обновить пользователя')
 
@@ -57,6 +59,16 @@ class EditConfigTypeForm(FlaskForm):
     client_links = TextAreaField('Ссылки на клиенты (JSON)')
     is_active = BooleanField('Активен')
     submit = SubmitField('Обновить тип конфигурации')
+
+class GroupForm(FlaskForm):
+    name = StringField('Название', validators=[DataRequired(), Length(min=3, max=100)])
+    description = TextAreaField('Описание', validators=[Length(max=500)])
+    submit = SubmitField('Создать группу')
+
+class EditGroupForm(FlaskForm):
+    name = StringField('Название', validators=[DataRequired(), Length(min=3, max=100)])
+    description = TextAreaField('Описание', validators=[Length(max=500)])
+    submit = SubmitField('Обновить группу')
 
 @admin_bp.route('/dashboard')
 @login_required
@@ -98,18 +110,26 @@ def create_user():
     """Создание нового пользователя"""
     form = UserForm()
     
+    # Заполняем choices для группы
+    groups = Group.query.all()
+    form.group_id.choices = [(0, '-- Без группы --')] + [(g.id, g.name) for g in groups]
+    
     if form.validate_on_submit():
         # Проверяем, что пользователь с таким именем не существует
         existing_user = User.query.filter_by(username=form.username.data).first()
         if existing_user:
             flash('Пользователь с таким логином уже существует.', 'danger')
-            return render_template('admin/create_user.html', form=form)
+            return render_template('admin/create_user.html', form=form, groups=groups)
         
         user = User(
             username=form.username.data,
             config_limit=form.config_limit.data,
             is_admin=form.is_admin.data
         )
+        # Устанавливаем группу если выбрана
+        if form.group_id.data and form.group_id.data != 0:
+            user.group_id = form.group_id.data
+        
         user.set_password(form.password.data)
         
         try:
@@ -121,7 +141,7 @@ def create_user():
             db.session.rollback()
             flash(f'Ошибка создания пользователя: {e}', 'danger')
     
-    return render_template('admin/create_user.html', form=form)
+    return render_template('admin/create_user.html', form=form, groups=groups)
 
 @admin_bp.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -131,16 +151,33 @@ def edit_user(user_id):
     user = User.query.get_or_404(user_id)
     form = EditUserForm(obj=user)
     
+    # Заполняем choices для группы
+    groups = Group.query.all()
+    form.group_id.choices = [(0, '-- Без группы --')] + [(g.id, g.name) for g in groups]
+    
+    if request.method == 'GET':
+        # Устанавливаем текущую группу
+        if user.group_id:
+            form.group_id.data = user.group_id
+        else:
+            form.group_id.data = 0
+    
     if form.validate_on_submit():
         # Проверяем уникальность логина
         existing_user = User.query.filter(User.username == form.username.data, User.id != user_id).first()
         if existing_user:
             flash('Пользователь с таким логином уже существует.', 'danger')
-            return render_template('admin/edit_user.html', form=form, user=user)
+            return render_template('admin/edit_user.html', form=form, user=user, groups=groups)
         
         user.username = form.username.data
         user.config_limit = form.config_limit.data
         user.is_admin = form.is_admin.data
+        
+        # Обновляем группу
+        if form.group_id.data and form.group_id.data != 0:
+            user.group_id = form.group_id.data
+        else:
+            user.group_id = None
         
         # Обновляем пароль только если он указан
         if form.password.data:
@@ -154,7 +191,7 @@ def edit_user(user_id):
             db.session.rollback()
             flash(f'Ошибка обновления пользователя: {e}', 'danger')
     
-    return render_template('admin/edit_user.html', form=form, user=user)
+    return render_template('admin/edit_user.html', form=form, user=user, groups=groups)
 
 @admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
 @login_required
@@ -203,6 +240,9 @@ def create_endpoint():
     # Заполняем choices для config_types
     form.config_types.choices = [(ct.id, ct.name) for ct in ConfigType.query.filter_by(is_active=True).all()]
     
+    # Получаем все группы
+    groups = Group.query.all()
+    
     if form.validate_on_submit():
         endpoint = Endpoint(
             name=form.name.data,
@@ -216,6 +256,13 @@ def create_endpoint():
             for ct in selected_types:
                 endpoint.config_types.append(ct)
         
+        # Добавляем выбранные группы
+        selected_groups = request.form.getlist('groups', type=int)
+        if selected_groups:
+            groups_to_add = Group.query.filter(Group.id.in_(selected_groups)).all()
+            for group in groups_to_add:
+                endpoint.groups.append(group)
+        
         try:
             db.session.add(endpoint)
             db.session.commit()
@@ -225,7 +272,7 @@ def create_endpoint():
             db.session.rollback()
             flash(f'Ошибка создания endpoint: {e}', 'danger')
     
-    return render_template('admin/create_endpoint.html', form=form)
+    return render_template('admin/create_endpoint.html', form=form, groups=groups)
 
 @admin_bp.route('/endpoints/<int:endpoint_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -237,6 +284,9 @@ def edit_endpoint(endpoint_id):
     
     # Заполняем choices для config_types
     form.config_types.choices = [(ct.id, ct.name) for ct in ConfigType.query.all()]
+    
+    # Получаем все группы
+    groups = Group.query.all()
     
     if request.method == 'GET':
         # Устанавливаем текущие выбранные типы
@@ -256,6 +306,14 @@ def edit_endpoint(endpoint_id):
             for ct in selected_types:
                 endpoint.config_types.append(ct)
         
+        # Обновляем группы
+        endpoint.groups = []
+        selected_groups = request.form.getlist('groups', type=int)
+        if selected_groups:
+            groups_to_add = Group.query.filter(Group.id.in_(selected_groups)).all()
+            for group in groups_to_add:
+                endpoint.groups.append(group)
+        
         try:
             db.session.commit()
             flash(f'Endpoint {endpoint.name} успешно обновлен.', 'success')
@@ -264,7 +322,9 @@ def edit_endpoint(endpoint_id):
             db.session.rollback()
             flash(f'Ошибка обновления endpoint: {e}', 'danger')
     
-    return render_template('admin/edit_endpoint.html', form=form, endpoint=endpoint)
+    selected_groups = [g.id for g in endpoint.groups]
+    return render_template('admin/edit_endpoint.html', form=form, endpoint=endpoint,
+                         groups=groups, selected_groups=selected_groups)
 
 @admin_bp.route('/endpoints/<int:endpoint_id>/delete', methods=['POST'])
 @login_required
@@ -567,3 +627,134 @@ def toggle_config_type(config_type_id):
         flash(f'Ошибка изменения статуса типа конфигурации: {e}', 'danger')
     
     return redirect(url_for('admin.config_types'))
+
+# ==================== GROUPS MANAGEMENT ====================
+
+@admin_bp.route('/groups')
+@login_required
+@admin_required
+def groups():
+    """Управление группами пользователей"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    groups = Group.query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template('admin/groups.html', groups=groups)
+
+@admin_bp.route('/groups/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_group():
+    """Создание новой группы"""
+    form = GroupForm()
+    endpoints = Endpoint.query.all()
+    
+    if form.validate_on_submit():
+        # Проверяем, не существует ли группа с таким именем
+        existing_group = Group.query.filter_by(name=form.name.data).first()
+        if existing_group:
+            flash(f'Группа с названием "{form.name.data}" уже существует.', 'danger')
+            return render_template('admin/create_group.html', form=form, endpoints=endpoints)
+        
+        group = Group(
+            name=form.name.data,
+            description=form.description.data
+        )
+        
+        # Добавляем выбранные endpoints
+        selected_endpoints = request.form.getlist('endpoints', type=int)
+        for endpoint_id in selected_endpoints:
+            endpoint = Endpoint.query.get(endpoint_id)
+            if endpoint:
+                group.endpoints.append(endpoint)
+        
+        try:
+            db.session.add(group)
+            db.session.commit()
+            flash(f'Группа "{group.name}" успешно создана.', 'success')
+            return redirect(url_for('admin.groups'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка создания группы: {e}', 'danger')
+    
+    return render_template('admin/create_group.html', form=form, endpoints=endpoints)
+
+@admin_bp.route('/groups/<int:group_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_group(group_id):
+    """Редактирование группы"""
+    group = Group.query.get_or_404(group_id)
+    form = EditGroupForm(obj=group)
+    endpoints = Endpoint.query.all()
+    
+    if form.validate_on_submit():
+        # Проверяем, не существует ли другая группа с таким именем
+        existing_group = Group.query.filter(
+            Group.name == form.name.data,
+            Group.id != group_id
+        ).first()
+        if existing_group:
+            flash(f'Группа с названием "{form.name.data}" уже существует.', 'danger')
+            selected_endpoints = [e.id for e in group.endpoints]
+            return render_template('admin/edit_group.html', form=form, group=group,
+                                 endpoints=endpoints, selected_endpoints=selected_endpoints)
+        
+        group.name = form.name.data
+        group.description = form.description.data
+        
+        # Обновляем endpoints
+        group.endpoints = []
+        selected_endpoints = request.form.getlist('endpoints', type=int)
+        for endpoint_id in selected_endpoints:
+            endpoint = Endpoint.query.get(endpoint_id)
+            if endpoint:
+                group.endpoints.append(endpoint)
+        
+        try:
+            db.session.commit()
+            flash(f'Группа "{group.name}" успешно обновлена.', 'success')
+            return redirect(url_for('admin.groups'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка обновления группы: {e}', 'danger')
+    
+    selected_endpoints = [e.id for e in group.endpoints]
+    return render_template('admin/edit_group.html', form=form, group=group,
+                         endpoints=endpoints, selected_endpoints=selected_endpoints)
+
+@admin_bp.route('/groups/<int:group_id>/delete')
+@login_required
+@admin_required
+def delete_group(group_id):
+    """Удаление группы"""
+    group = Group.query.get_or_404(group_id)
+    
+    # Нельзя удалить группу по умолчанию
+    if group.name == 'Default':
+        flash('Нельзя удалить группу по умолчанию.', 'danger')
+        return redirect(url_for('admin.groups'))
+    
+    # Находим группу по умолчанию
+    default_group = Group.query.filter_by(name='Default').first()
+    if not default_group:
+        flash('Группа по умолчанию не найдена. Сначала создайте группу "Default".', 'danger')
+        return redirect(url_for('admin.groups'))
+    
+    # Перемещаем всех пользователей в группу по умолчанию
+    users_in_group = User.query.filter_by(group_id=group_id).all()
+    for user in users_in_group:
+        user.group_id = default_group.id
+    
+    try:
+        db.session.delete(group)
+        db.session.commit()
+        flash(f'Группа "{group.name}" успешно удалена. Пользователи перемещены в группу по умолчанию.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка удаления группы: {e}', 'danger')
+    
+    return redirect(url_for('admin.groups'))

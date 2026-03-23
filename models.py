@@ -11,6 +11,12 @@ endpoint_config_types = db.Table('endpoint_config_types',
     db.Column('config_type_id', db.Integer, db.ForeignKey('config_types.id'), primary_key=True)
 )
 
+# Таблица связи many-to-many между Group и Endpoint
+group_endpoints = db.Table('group_endpoints',
+    db.Column('group_id', db.Integer, db.ForeignKey('groups.id'), primary_key=True),
+    db.Column('endpoint_id', db.Integer, db.ForeignKey('endpoints.id'), primary_key=True)
+)
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
@@ -19,6 +25,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     config_limit = db.Column(db.Integer, default=5)
     is_admin = db.Column(db.Boolean, default=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     configs = db.relationship('Config', backref='owner', lazy=True, cascade='all, delete-orphan')
 
@@ -56,6 +63,29 @@ class ConfigType(db.Model):
     def __repr__(self):
         return f'<ConfigType {self.name}>'
 
+class Group(db.Model):
+    __tablename__ = 'groups'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    users = db.relationship('User', backref='group', lazy=True)
+    
+    def __repr__(self):
+        return f'<Group {self.name}>'
+    
+    def get_users_count(self):
+        """Получить количество пользователей в группе"""
+        return len(self.users)
+    
+    def get_endpoints_count(self):
+        """Получить количество endpoints в группе"""
+        return len(self.endpoints)
+
+
 class Endpoint(db.Model):
     __tablename__ = 'endpoints'
     
@@ -70,6 +100,11 @@ class Endpoint(db.Model):
     config_types = db.relationship('ConfigType', secondary=endpoint_config_types,
                                    backref=db.backref('endpoints', lazy=True),
                                    lazy=True)
+    
+    # Relationship с Group через таблицу связи
+    groups = db.relationship('Group', secondary=group_endpoints,
+                             backref=db.backref('endpoints', lazy=True),
+                             lazy=True)
     
     @property
     def full_address(self):

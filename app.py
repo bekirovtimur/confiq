@@ -3,7 +3,7 @@ import logging
 from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, login_required, logout_user
 from dotenv import load_dotenv
-from models import db, User, Endpoint, ConfigType
+from models import db, User, Endpoint, ConfigType, Group
 from auth import auth_bp
 from routes.admin import admin_bp
 from routes.user import user_bp
@@ -75,34 +75,46 @@ def create_app():
         # Создаем таблицы
         db.create_all()
         
-        # Создаем администратора по умолчанию, если его нет
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            admin = User(
-                username=os.getenv('ADMIN_LOGIN', 'admin'),
-                is_admin=True,
-                config_limit=999  # Неограниченно для админа
-            )
-            admin.set_password(os.getenv('ADMIN_PASSWORD', 'admin123'))
-            db.session.add(admin)
+        try:
+            # Создаем группу по умолчанию, если её нет
+            default_group = Group.query.filter_by(name='Default').first()
+            if not default_group:
+                default_group = Group(
+                    name='Default',
+                    description='Группа по умолчанию для всех пользователей'
+                )
+                db.session.add(default_group)
+                db.session.flush()  # Получаем ID группы до commit
             
-            # Создаем несколько endpoints по умолчанию
-            endpoints = [
-                Endpoint(name='Cloudflare WARP (Original)', address='engage.cloudflareclient.com', port=2408),
-                Endpoint(name='Cloudflare WARP (Alternative 1)', address='162.159.193.10', port=2408),
-                Endpoint(name='Cloudflare WARP (Alternative 2)', address='162.159.192.1', port=2408),
-                Endpoint(name='Custom Endpoint', address='1.1.1.1', port=2408)
-            ]
-            
-            for endpoint in endpoints:
-                db.session.add(endpoint)
-            
-            try:
+            # Создаем администратора по умолчанию, если его нет
+            admin = User.query.filter_by(username=os.getenv('ADMIN_LOGIN', 'admin')).first()
+            if not admin:
+                admin = User(
+                    username=os.getenv('ADMIN_LOGIN', 'admin'),
+                    is_admin=True,
+                    config_limit=999,  # Неограниченно для админа
+                    group_id=default_group.id
+                )
+                admin.set_password(os.getenv('ADMIN_PASSWORD', 'admin123'))
+                db.session.add(admin)
+                
+                # Создаем несколько endpoints по умолчанию
+                endpoints = [
+                    Endpoint(name='Cloudflare WARP (Original)', address='engage.cloudflareclient.com', port=2408),
+                    Endpoint(name='Cloudflare WARP (Alternative 1)', address='162.159.193.10', port=2408),
+                    Endpoint(name='Cloudflare WARP (Alternative 2)', address='162.159.192.1', port=2408),
+                    Endpoint(name='Custom Endpoint', address='1.1.1.1', port=2408)
+                ]
+                
+                for endpoint in endpoints:
+                    endpoint.groups.append(default_group)
+                    db.session.add(endpoint)
+                
                 db.session.commit()
                 app.logger.info("База данных инициализирована с администратором по умолчанию")
-            except Exception as e:
-                db.session.rollback()
-                app.logger.error(f"Ошибка инициализации БД: {e}")
+        except Exception as e:
+            db.session.rollback()
+            app.logger.warning(f"Инициализация БД пропущена (возможно, уже выполнена другим воркером): {e}")
         
         # Инициализация начальных типов конфигураций
         try:

@@ -34,6 +34,7 @@
                                 <th>Название</th>
                                 <th>Адрес</th>
                                 <th>Порт</th>
+                                <th>Группы</th>
                                 <th>Конфиги</th>
                                 <th>Действия</th>
                             </tr>
@@ -45,6 +46,17 @@
                                 <td><strong>{{ endpoint.name }}</strong></td>
                                 <td><code>{{ endpoint.address }}</code></td>
                                 <td><span class="md-chip md-chip-suggestion">{{ endpoint.port }}</span></td>
+                                <td>
+                                    {% if endpoint.groups %}
+                                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                        {% for group in endpoint.groups %}
+                                            <span class="md-chip md-chip-assist" title="{{ group.description or '' }}">{{ group.name }}</span>
+                                        {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <span class="md-chip md-chip-suggestion" style="opacity: 0.5;">Все</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if endpoint.configs|length > 0 %}
                                         <a href="{{ url_for('admin.endpoint_configs', endpoint_id=endpoint.id) }}" class="md-chip md-chip-filter">

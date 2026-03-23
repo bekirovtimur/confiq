@@ -70,8 +70,25 @@
                         </div>
                     {% endif %}
 
+                    <!-- Group Info -->
+                    {% if current_user.group %}
+                    <div class="md-card md-card-filled" style="margin-top: 16px; background: var(--md-secondary-container);">
+                        <div class="md-card-body">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="material-icons-round" style="color: var(--md-secondary);">groups</span>
+                                <div>
+                                    <div style="font-weight: 500;">Ваша группа: {{ current_user.group.name }}</div>
+                                    <div class="text-body-small" style="color: var(--md-on-surface-variant);">
+                                        Доступно endpoints: {{ current_user.group.get_endpoints_count() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <!-- Progress Info -->
-                    <div class="md-card md-card-filled" style="margin-top: 24px;">
+                    <div class="md-card md-card-filled" style="margin-top: 16px;">
                         <div class="md-card-body">
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <span class="material-icons-round" style="color: var(--md-primary);">info</span>
