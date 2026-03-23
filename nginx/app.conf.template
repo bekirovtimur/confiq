@@ -19,7 +19,7 @@ server {
     }
 }
 
-# HTTPS server
+# HTTPS server - основной (только для указанного домена)
 server {
     listen 443 ssl http2;
     server_name ${CERTBOT_DOMAIN};
@@ -45,5 +45,24 @@ server {
         proxy_pass http://app;
         expires 1y;
         add_header Cache-Control "public, immutable";
+    }
+}
+
+# Catch-all для HTTPS - отклоняем все остальные SNI
+# Этот блок перехватывает запросы с неправильным SNI или без SNI
+server {
+    listen 443 ssl http2 default_server;
+    server_name _;
+
+    # Используем те же сертификаты (nginx требует их для ssl)
+    ssl_certificate /etc/letsencrypt/live/${CERTBOT_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${CERTBOT_DOMAIN}/privkey.pem;
+
+    # Отклоняем SSL handshake если SNI не совпадает с основным доменом
+    ssl_reject_handshake on;
+
+    # Если handshake всё же прошёл (старые клиенты без SNI), возвращаем 444
+    location / {
+        return 444;
     }
 }
