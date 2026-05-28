@@ -9,7 +9,7 @@ cd confiq
 
 # 2. Настройка переменных окружения
 cp .env.example .env
-# Отредактируйте .env, укажите CERTBOT_DOMAIN и CERTBOT_EMAIL
+# Отредактируйте .env, укажите CADDY_DOMAIN и CADDY_EMAIL
 
 # 3. Запуск приложения
 docker compose up -d
@@ -64,8 +64,8 @@ nano .env
 **Обязательные изменения:**
 
 ```env
-CERTBOT_DOMAIN=your-domain.com
-CERTBOT_EMAIL=admin@your-domain.com
+CADDY_DOMAIN=your-domain.com
+CADDY_EMAIL=admin@your-domain.com
 ADMIN_PASSWORD=your_secure_password_here
 SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
 ```
@@ -99,8 +99,8 @@ curl -I https://your-domain.com
 
 | Переменная | Описание | Обязательная |
 |------------|----------|--------------|
-| `CERTBOT_DOMAIN` | Домен для SSL | ✅ |
-| `CERTBOT_EMAIL` | Email для Let's Encrypt | ✅ |
+| `CADDY_DOMAIN` | Домен для SSL | ✅ |
+| `CADDY_EMAIL` | Email для Let's Encrypt | ✅ |
 | `ADMIN_PASSWORD` | Пароль администратора | ✅ |
 | `SECRET_KEY` | Секретный ключ для сессий | ✅ |
 | `ADMIN_LOGIN` | Логин администратора | ❌ (по умолчанию: admin) |
@@ -111,11 +111,11 @@ curl -I https://your-domain.com
 
 ## 🔐 SSL сертификаты
 
-SSL-сертификаты получаются и обновляются **автоматически** через Let's Encrypt.
+SSL-сертификаты получаются и обновляются **автоматически** через Let's Encrypt с помощью Caddy.
 
 Проверка логов:
 ```bash
-docker compose logs nginx
+docker compose logs caddy
 ```
 
 ---
@@ -134,7 +134,7 @@ docker compose down && docker compose up -d
 Проверьте:
 1. Домен указывает на IP сервера: `nslookup your-domain.com`
 2. Порт 80 открыт: `sudo ufw allow 80/tcp`
-3. Переменные CERTBOT_DOMAIN и CERTBOT_EMAIL указаны в .env
+3. Переменные CADDY_DOMAIN и CADDY_EMAIL указаны в .env
 
 ### Приложение недоступно
 

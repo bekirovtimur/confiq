@@ -38,7 +38,7 @@ cd confiq
 
 # 2. Настройка .env файла
 cp .env.example .env
-# Отредактируйте .env, укажите CERTBOT_DOMAIN, CERTBOT_EMAIL, ADMIN_PASSWORD, SECRET_KEY
+# Отредактируйте .env, укажите CADDY_DOMAIN, CADDY_EMAIL, ADMIN_PASSWORD, SECRET_KEY
 
 # 3. Запуск
 docker compose up -d
@@ -79,6 +79,7 @@ docker compose up -d
 - **Backend**: Python 3.11, Flask, SQLAlchemy, Flask-Login
 - **Frontend**: HTML5, Bootstrap 5, Jinja2
 - **База данных**: SQLite
+- **Reverse Proxy**: Caddy (с автоматическим SSL через Let's Encrypt)
 - **Контейнеризация**: Docker, Docker Compose
 
 ## 🔐 Безопасность

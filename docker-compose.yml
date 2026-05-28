@@ -23,20 +23,21 @@ services:
     networks:
       - network
 
-  nginx:
-    image: jonasal/nginx-certbot:latest
-    container_name: nginx
+  caddy:
+    image: caddy:latest
+    container_name: caddy
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     environment:
-      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-admin@your-domain.com}
-      - CERTBOT_DOMAIN=${CERTBOT_DOMAIN:-your-domain.com}
+      - CADDY_DOMAIN=${CADDY_DOMAIN:-localhost}
+      - CADDY_EMAIL=${CADDY_EMAIL:-admin@your-domain.com}
     volumes:
-      - ./nginx/app.conf.template:/etc/nginx/templates/app.conf.template:ro
-      - nginx-data:/etc/nginx/conf.d
-      - letsencrypt:/etc/letsencrypt
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     depends_on:
       - app
     networks:
@@ -47,7 +48,7 @@ networks:
     driver: bridge
 
 volumes:
-  nginx-data:
+  caddy-data:
     driver: local
-  letsencrypt:
+  caddy-config:
     driver: local
