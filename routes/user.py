@@ -241,10 +241,12 @@ def download_config(config_id):
             file_extension = 'yaml'
         else:
             file_extension = 'conf'
+        config_type_name = config.config_type.name
     else:
         file_extension = 'conf'
+        config_type_name = 'Config'
     
-    filename = f"{config.name.replace(' ', '_')}.{file_extension}"
+    filename = f"{config_type_name}{config.id}.{file_extension}"
     
     response = make_response(config.config_content)
     response.headers['Content-Type'] = 'application/octet-stream'
