@@ -5,11 +5,9 @@ from wtforms import StringField, SelectField, SubmitField, PasswordField
 from wtforms.validators import DataRequired, Length, Optional, EqualTo
 from models import db, User, Endpoint, Config, ConfigType, Group
 from warp.client import WarpAPI
-import qrcode
-import io
-import base64
 import json
 from jinja2 import Template
+from utils.qr import prepare_qr
 
 user_bp = Blueprint('user', __name__)
 
@@ -37,9 +35,11 @@ def dashboard():
     configs = Config.query.filter_by(user_id=current_user.id).order_by(Config.created_at.desc()).all()
     config_count = len(configs)
     config_limit = current_user.config_limit
+    qr_available = {config.id: prepare_qr(config.config_content).available for config in configs[:6]}
     
     return render_template('user/dashboard.html', 
                          configs=configs,
+                         qr_available=qr_available,
                          config_count=config_count,
                          config_limit=config_limit)
 
@@ -54,7 +54,8 @@ def configs():
                     .order_by(Config.created_at.desc())\
                     .paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('user/configs.html', configs=configs)
+    qr_available = {config.id: prepare_qr(config.config_content).available for config in configs.items}
+    return render_template('user/configs.html', configs=configs, qr_available=qr_available)
 
 @user_bp.route('/configs/create', methods=['GET', 'POST'])
 @login_required
@@ -219,13 +220,14 @@ def view_config(config_id):
         except json.JSONDecodeError:
             client_links = {}
     
-    # Генерируем QR-код
-    qr_data = generate_qr_code(config.config_content)
+    qr_result = prepare_qr(config.config_content)
+    qr_data = qr_result.data_uri() if qr_result.available else None
     
     return render_template('user/view_config.html', 
                          config=config, 
                          config_type=config_type,
                          client_links=client_links,
+                         qr_result=qr_result,
                          qr_data=qr_data)
 
 @user_bp.route('/configs/<int:config_id>/download')
@@ -260,26 +262,14 @@ def config_qr(config_id):
     """Получение QR-кода конфигурации"""
     config = Config.query.filter_by(id=config_id, user_id=current_user.id).first_or_404()
     
-    # Генерируем QR-код
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=5
-    )
-    qr.add_data(config.config_content)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    
-    # Конвертируем в base64 для возврата
-    img_buffer = io.BytesIO()
-    img.save(img_buffer, format='PNG')
-    img_buffer.seek(0)
-    
-    response = make_response(img_buffer.getvalue())
+    qr_result = prepare_qr(config.config_content)
+    if not qr_result.available:
+        return render_template('user/qr_unavailable.html',
+                               config=config, reason=qr_result.reason), 422
+
+    response = make_response(qr_result.png())
     response.headers['Content-Type'] = 'image/png'
-    response.headers['Cache-Control'] = 'max-age=3600'
+    response.headers['Cache-Control'] = 'private, no-store'
     
     return response
 
@@ -352,23 +342,3 @@ def profile():
     return render_template('user/profile.html',
                          config_count=config_count,
                          password_form=password_form)
-
-def generate_qr_code(text):
-    """Генерирует QR-код и возвращает как base64 строку"""
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=6,
-        border=4,
-    )
-    qr.add_data(text)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    
-    buffer = io.BytesIO()
-    img.save(buffer, format='PNG')
-    buffer.seek(0)
-    
-    img_base64 = base64.b64encode(buffer.getvalue()).decode()
-    return f"data:image/png;base64,{img_base64}"

@@ -125,7 +125,7 @@
         </div>
         
         <!-- Sidebar -->
-        <div>
+        <div class="config-sidebar">
             <!-- QR Code -->
             <div class="md-card">
                 <div class="md-card-header">
@@ -134,17 +134,28 @@
                         QR-код
                     </div>
                 </div>
-                <div class="md-card-body" style="text-align: center;">
-                    <div class="qr-container">
-                        <img src="{{ qr_data }}" alt="QR Code" style="max-width: 200px; border-radius: 8px;">
+                <div class="md-card-body qr-panel" style="text-align: center;">
+                    {% if qr_result.available %}
+                    <div class="qr-container" style="--qr-modules: {{ qr_result.total_modules }};">
+                        <img src="{{ qr_data }}" alt="QR-код конфигурации" width="{{ qr_result.total_modules * 4 }}" height="{{ qr_result.total_modules * 4 }}">
                     </div>
-                    <p style="color: var(--md-on-surface-variant); font-size: 0.875rem; margin-top: 16px;">
+                    <p class="qr-scan-instruction" style="color: var(--md-on-surface-variant); font-size: 0.875rem; margin-top: 16px;">
                         Отсканируйте в приложении на мобильном устройстве
+                    </p>
+                    <p class="qr-small-screen-note">
+                        Для сканирования откройте QR-код в полном размере.
                     </p>
                     <a href="{{ url_for('user.config_qr', config_id=config.id) }}" target="_blank" class="md-btn md-btn-outlined md-btn-small" style="margin-top: 8px;">
                         <span class="material-icons-round md-18">open_in_full</span>
                         Открыть в полном размере
                     </a>
+                    {% else %}
+                    <p>{{ qr_result.reason }}</p>
+                    <a href="{{ url_for('user.download_config', config_id=config.id) }}" class="md-btn md-btn-outlined md-btn-small">
+                        <span class="material-icons-round md-18">download</span>
+                        Скачать конфигурацию
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -177,8 +188,13 @@
                         <div style="font-weight: 500; margin-bottom: 8px;">Мобильные устройства:</div>
                         <ol style="margin: 0; padding-left: 20px; color: var(--md-on-surface-variant); font-size: 0.875rem;">
                             <li>Установите приложение WireGuard</li>
+                            {% if qr_result.available %}
                             <li>Нажмите "+" → "Создать из QR-кода"</li>
                             <li>Отсканируйте QR-код выше</li>
+                            {% else %}
+                            <li>Скачайте файл конфигурации</li>
+                            <li>Нажмите "+" → "Импорт из файла" и выберите скачанный файл</li>
+                            {% endif %}
                             <li>Активируйте подключение</li>
                         </ol>
                     </div>

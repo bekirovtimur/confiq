@@ -1018,19 +1018,54 @@ h6 {
 }
 
 /* QR Code Container */
+.config-sidebar {
+    min-width: 0;
+}
+
+.qr-panel {
+    container-type: inline-size;
+    overflow: auto;
+}
+
 .qr-container {
-    background-color: var(--md-surface);
-    border-radius: var(--md-shape-large);
-    padding: 24px;
+    background-color: #fff;
+    width: max-content;
+    margin: 0 auto;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 16px;
-    box-shadow: var(--md-shadow-1);
+    justify-content: center;
 }
 
 .qr-container img {
-    border-radius: var(--md-shape-medium);
+    display: block;
+    width: calc(var(--qr-modules) * 4px);
+    height: auto;
+    max-width: none;
+    flex-shrink: 0;
+    border-radius: 0;
+    image-rendering: pixelated;
+}
+
+.qr-small-screen-note {
+    display: none;
+}
+
+/* Version 15, including the quiet zone, is at most 85 modules wide. */
+@container (max-width: 339px) {
+    .qr-container img {
+        width: calc(var(--qr-modules) * 3px);
+    }
+}
+
+@container (max-width: 254px) {
+    .qr-container,
+    .qr-scan-instruction {
+        display: none;
+    }
+
+    .qr-small-screen-note {
+        display: block;
+    }
 }
 
 /* Code block styling */

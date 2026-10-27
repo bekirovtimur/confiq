@@ -163,10 +163,12 @@
                                         <span class="material-icons-round">download</span>
                                         Скачать
                                     </div>
+                                    {% if qr_available[config.id] %}
                                     <div class="md-menu-item" onclick="window.open('{{ url_for('user.config_qr', config_id=config.id) }}', '_blank')">
                                         <span class="material-icons-round">qr_code</span>
                                         QR-код
                                     </div>
+                                    {% endif %}
                                     <div class="md-divider"></div>
                                     <div class="md-menu-item" style="color: var(--md-error);" onclick="confirmDelete('{{ config.name or 'Без названия' }}', {{ config.id }})">
                                         <span class="material-icons-round">delete</span>
@@ -191,9 +193,11 @@
                             <a href="{{ url_for('user.view_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-outlined" title="Открыть">
                                 <span class="material-icons-round md-20">visibility</span>
                             </a>
+                            {% if qr_available[config.id] %}
                             <a href="{{ url_for('user.config_qr', config_id=config.id) }}" target="_blank" class="md-btn md-btn-icon md-btn-outlined" title="QR-код">
                                 <span class="material-icons-round md-20">qr_code</span>
                             </a>
+                            {% endif %}
                             <a href="{{ url_for('user.download_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-outlined" title="Скачать">
                                 <span class="material-icons-round md-20">download</span>
                             </a>
