@@ -81,6 +81,7 @@ def create_config():
         # Если у пользователя нет группы, показываем все endpoints
         endpoints = Endpoint.query.all()
     
+    endpoints = sorted(endpoints, key=lambda ep: (ep.name.casefold(), ep.id))
     form.endpoint_id.choices = [(ep.id, f"{ep.name} ({ep.full_address})") for ep in endpoints]
     
     if not endpoints:
