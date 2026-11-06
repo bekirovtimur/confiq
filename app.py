@@ -3,6 +3,7 @@ import logging
 from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, login_required, logout_user
 from dotenv import load_dotenv
+from sqlalchemy import inspect
 from models import db, User, Endpoint, ConfigType, Group
 from auth import auth_bp
 from routes.admin import admin_bp
@@ -73,6 +74,7 @@ def create_app():
         os.makedirs('/data', exist_ok=True)
         
         # Создаем таблицы
+        initialize_config_types = not inspect(db.engine).has_table('config_types')
         db.create_all()
         
         try:
@@ -121,7 +123,9 @@ def create_app():
             # Импортируем начальные типы конфигураций
             from data.initial_config_types import get_initial_config_types
             
-            initial_types = get_initial_config_types()
+            # Стандартные типы добавляем только при создании таблицы:
+            # удалённые администратором типы не должны возвращаться после рестарта.
+            initial_types = get_initial_config_types() if initialize_config_types else []
             types_created = 0
             
             for type_data in initial_types:
@@ -144,7 +148,7 @@ def create_app():
                 db.session.commit()
                 app.logger.info(f"Инициализировано {types_created} типов конфигураций")
             else:
-                app.logger.info("Типы конфигураций уже существуют, пропускаем инициализацию")
+                app.logger.info("Таблица типов уже существует, пропускаем инициализацию")
             
             # Привязка endpoints к типу WireGuard по умолчанию (для совместимости)
             wireguard_type = ConfigType.query.filter_by(name='WireGuard').first()

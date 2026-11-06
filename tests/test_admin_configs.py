@@ -7,9 +7,10 @@ from unittest.mock import patch
 from flask import Flask, g, redirect, url_for
 from flask_login import LoginManager
 from sqlalchemy.exc import SQLAlchemyError
+from flask_sqlalchemy.query import Query
 
 from auth import auth_bp
-from models import Config, ConfigType, Endpoint, User, db
+from models import Config, ConfigType, Endpoint, User, db, endpoint_config_types
 from routes.admin import admin_bp
 from routes.user import user_bp
 
@@ -256,6 +257,120 @@ class AdminConfigTests(unittest.TestCase):
                                     data={'config_type_id': self.target_type.id, 'csrf_token': token})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.config.config_type_id, self.target_type.id)
+
+    def test_type_list_shows_counts_for_all_owners_and_zero_usage(self):
+        response = self.client.get('/admin/config-types')
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        rows = re.findall(r'<tr>(.*?)</tr>', html, re.S)
+        for config_type, count in [(self.original_type, 2), (self.target_type, 0),
+                                   (self.inactive_type, 0), (self.unsupported_type, 0)]:
+            row = next(row for row in rows if f'<strong>{config_type.name}</strong>' in row)
+            self.assertIn(f'<td>{count}</td>', row)
+            delete_url = f'/admin/config-types/{config_type.id}/delete'
+            if count:
+                self.assertNotIn(delete_url, row)
+                self.assertIn('disabled', row)
+            else:
+                self.assertIn(delete_url, row)
+                self.assertIn('onsubmit="return confirm(', row)
+
+    def test_delete_unused_type_with_or_without_endpoint_links(self):
+        for config_type in [self.unsupported_type, self.target_type, self.inactive_type]:
+            type_id = config_type.id
+            response = self.client.post(f'/admin/config-types/{type_id}/delete', follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('успешно удален', response.get_data(as_text=True))
+            db.session.expire_all()
+            self.assertIsNone(db.session.get(ConfigType, type_id))
+            links = db.session.execute(db.select(endpoint_config_types).where(
+                endpoint_config_types.c.config_type_id == type_id)).all()
+            self.assertEqual(links, [])
+            self.assertEqual(Endpoint.query.count(), 1)
+            self.assertEqual(Config.query.count(), 2)
+        self.assertEqual(self.endpoint.config_types, [self.original_type])
+
+    def test_used_type_cannot_be_deleted_by_direct_post(self):
+        before = [self.snapshot(), self.foreign.config_type_id, self.foreign.config_content]
+        type_id = self.original_type.id
+        response = self.client.post(f'/admin/config-types/{type_id}/delete', follow_redirects=True)
+        self.assertIn('Он используется в 2 конфигурациях', response.get_data(as_text=True))
+        db.session.expire_all()
+        self.assertIsNotNone(db.session.get(ConfigType, type_id))
+        self.assertEqual([self.snapshot(), self.foreign.config_type_id, self.foreign.config_content], before)
+        self.assertIn(self.original_type, self.endpoint.config_types)
+
+    def test_delete_rechecks_usage_after_list_was_loaded(self):
+        self.client.get('/admin/config-types')
+        self.foreign.config_type = self.target_type
+        db.session.commit()
+        type_id = self.target_type.id
+        response = self.client.post(f'/admin/config-types/{type_id}/delete', follow_redirects=True)
+        self.assertIn('Он используется в 1 конфигурациях', response.get_data(as_text=True))
+        db.session.expire_all()
+        self.assertEqual(self.foreign.config_type_id, type_id)
+        self.assertIsNotNone(db.session.get(ConfigType, type_id))
+
+    def test_type_delete_failure_rolls_back_endpoint_links_and_hides_error(self):
+        type_id = self.target_type.id
+        with patch.object(db.session, 'commit', side_effect=SQLAlchemyError('synthetic-secret')):
+            response = self.client.post(f'/admin/config-types/{type_id}/delete', follow_redirects=True)
+        html = response.get_data(as_text=True)
+        self.assertIn('Изменения отменены', html)
+        self.assertNotIn('synthetic-secret', html)
+        db.session.expire_all()
+        self.assertIsNotNone(db.session.get(ConfigType, type_id))
+        self.assertIn(self.target_type, self.endpoint.config_types)
+
+    def test_conditional_delete_preserves_configs_even_if_preliminary_count_is_stale(self):
+        type_id = self.original_type.id
+        before = self.snapshot()
+        # Simulate a zero count that is no longer valid at DELETE time.
+        with patch.object(Query, 'count', return_value=0):
+            response = self.client.post(f'/admin/config-types/{type_id}/delete', follow_redirects=True)
+        self.assertIn('Он уже используется', response.get_data(as_text=True))
+        db.session.expire_all()
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.foreign.config_type_id, type_id)
+        self.assertIn(self.original_type, self.endpoint.config_types)
+
+    def test_type_actions_require_admin_and_post(self):
+        type_id = self.target_type.id
+        for action in ['delete', 'toggle']:
+            self.assertEqual(self.client.get(f'/admin/config-types/{type_id}/{action}').status_code, 405)
+        for user in [None, self.owner]:
+            self.login(user)
+            response = self.client.get('/admin/config-types')
+            self.assertEqual(response.status_code, 302)
+            self.assertIn('/auth/login', response.headers['Location'])
+            for action in ['delete', 'toggle']:
+                response = self.client.post(f'/admin/config-types/{type_id}/{action}')
+                self.assertEqual(response.status_code, 302)
+                self.assertIn('/auth/login', response.headers['Location'])
+                self.assertIsNotNone(db.session.get(ConfigType, type_id))
+                self.assertTrue(self.target_type.is_active)
+
+    def test_missing_type_actions_return_404(self):
+        for action in ['delete', 'toggle']:
+            self.assertEqual(self.client.post(f'/admin/config-types/99999/{action}').status_code, 404)
+
+    def test_type_actions_require_valid_csrf_token(self):
+        self.app.config['WTF_CSRF_ENABLED'] = True
+        type_id = self.target_type.id
+        for action in ['delete', 'toggle']:
+            for data in [{}, {'csrf_token': 'invalid'}]:
+                response = self.client.post(f'/admin/config-types/{type_id}/{action}', data=data)
+                self.assertEqual(response.status_code, 302)
+                self.assertIsNotNone(db.session.get(ConfigType, type_id))
+                self.assertTrue(self.target_type.is_active)
+        html = self.client.get('/admin/config-types').get_data(as_text=True)
+        token = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', html).group(1)
+        response = self.client.post(f'/admin/config-types/{type_id}/toggle', data={'csrf_token': token})
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(self.target_type.is_active)
+        response = self.client.post(f'/admin/config-types/{type_id}/delete', data={'csrf_token': token})
+        self.assertEqual(response.status_code, 302)
+        self.assertIsNone(db.session.get(ConfigType, type_id))
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ from models import db, User, Endpoint, Config, ConfigType, Group
 from warp.client import WarpAPI
 from functools import wraps
 from jinja2 import Environment, StrictUndefined
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from routes.user import render_config_page, download_config_response, config_qr_response
 
@@ -62,6 +63,10 @@ class EditConfigTypeForm(FlaskForm):
     client_links = TextAreaField('Ссылки на клиенты (JSON)')
     is_active = BooleanField('Активен')
     submit = SubmitField('Обновить тип конфигурации')
+
+class ConfigTypeActionForm(FlaskForm):
+    """CSRF-защита действий над типом без дополнительных полей."""
+    pass
 
 class GroupForm(FlaskForm):
     name = StringField('Название', validators=[DataRequired(), Length(min=3, max=100)])
@@ -590,7 +595,10 @@ Endpoint = {target_endpoint.address}:{target_endpoint.port}"""
 def config_types():
     """Список всех типов конфигураций"""
     config_types = ConfigType.query.order_by(ConfigType.created_at.desc()).all()
-    return render_template('admin/config_types.html', config_types=config_types)
+    configs_counts = dict(db.session.query(Config.config_type_id, func.count(Config.id))
+                          .group_by(Config.config_type_id).all())
+    return render_template('admin/config_types.html', config_types=config_types,
+                           configs_counts=configs_counts, action_form=ConfigTypeActionForm())
 
 @admin_bp.route('/config-types/create', methods=['GET', 'POST'])
 @login_required
@@ -667,6 +675,10 @@ def edit_config_type(config_type_id):
 def delete_config_type(config_type_id):
     """Удаление типа конфигурации"""
     config_type = ConfigType.query.get_or_404(config_type_id)
+    form = ConfigTypeActionForm()
+    if not form.validate_on_submit():
+        flash('Не удалось подтвердить удаление. Обновите страницу и повторите попытку.', 'danger')
+        return redirect(url_for('admin.config_types'))
     
     # Проверяем, есть ли связанные конфигурации
     configs_count = Config.query.filter_by(config_type_id=config_type_id).count()
@@ -674,19 +686,23 @@ def delete_config_type(config_type_id):
         flash(f'Невозможно удалить тип конфигурации. Он используется в {configs_count} конфигурациях.', 'danger')
         return redirect(url_for('admin.config_types'))
     
-    # Проверяем, есть ли связанные endpoints
-    endpoints_count = len(config_type.endpoints)
-    if endpoints_count > 0:
-        flash(f'Невозможно удалить тип конфигурации. Он связан с {endpoints_count} endpoint\'ами.', 'danger')
-        return redirect(url_for('admin.config_types'))
-    
     try:
-        db.session.delete(config_type)
+        # Привязки доступности удаляются, сами endpoints остаются.
+        config_type.endpoints.clear()
+        # Условие проверяется и в самом DELETE: не обнуляем config_type_id,
+        # если после предварительного подсчёта появился новый конфиг.
+        deleted = ConfigType.query.filter(
+            ConfigType.id == config_type_id, ~ConfigType.configs.any()
+        ).delete(synchronize_session='fetch')
+        if not deleted:
+            db.session.rollback()
+            flash('Невозможно удалить тип конфигурации. Он уже используется или был удалён. Обновите страницу.', 'danger')
+            return redirect(url_for('admin.config_types'))
         db.session.commit()
         flash(f'Тип конфигурации "{config_type.name}" успешно удален.', 'success')
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        flash(f'Ошибка удаления типа конфигурации: {e}', 'danger')
+        flash('Не удалось удалить тип конфигурации. Изменения отменены.', 'danger')
     
     return redirect(url_for('admin.config_types'))
 
@@ -696,6 +712,10 @@ def delete_config_type(config_type_id):
 def toggle_config_type(config_type_id):
     """Включение/выключение типа конфигурации"""
     config_type = ConfigType.query.get_or_404(config_type_id)
+    form = ConfigTypeActionForm()
+    if not form.validate_on_submit():
+        flash('Не удалось подтвердить действие. Обновите страницу и повторите попытку.', 'danger')
+        return redirect(url_for('admin.config_types'))
     
     config_type.is_active = not config_type.is_active
     
