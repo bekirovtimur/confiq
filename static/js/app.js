@@ -1,5 +1,89 @@
 // Confiq JavaScript
 
+// Shared viewport-aware menus for configuration cards on both user pages.
+class ConfigMenuController {
+    constructor() {
+        this.active = null;
+        document.addEventListener('click', event => {
+            const trigger = event.target.closest('[data-config-menu]');
+            if (trigger) {
+                this.toggle(trigger);
+            } else if (this.active && (!this.active.menu.contains(event.target) ||
+                       event.target.closest('.md-menu-item'))) {
+                this.close();
+            }
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && this.active) {
+                event.preventDefault();
+                this.close(true);
+            }
+        });
+        // Capture scrolls in nested containers, but allow scrolling the menu itself.
+        document.addEventListener('scroll', event => {
+            if (this.active && !this.active.menu.contains(event.target)) this.close();
+        }, true);
+        window.addEventListener('resize', () => this.close());
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => this.close());
+            window.visualViewport.addEventListener('scroll', () => this.close());
+        }
+    }
+
+    close(restoreFocus = false) {
+        if (!this.active) return;
+        const { menu, trigger, parent } = this.active;
+        menu.style.display = 'none';
+        parent.appendChild(menu);
+        trigger.setAttribute('aria-expanded', 'false');
+        this.active = null;
+        if (restoreFocus) trigger.focus({ preventScroll: true });
+    }
+
+    toggle(trigger) {
+        const wasOpen = this.active && this.active.trigger === trigger;
+        this.close();
+        if (wasOpen) return;
+        const menu = document.getElementById(trigger.dataset.configMenu);
+        if (!menu) return;
+        this.active = { menu, trigger, parent: menu.parentNode };
+        // Escape overflow:hidden and stacking contexts belonging to the cards.
+        document.body.appendChild(menu);
+        menu.style.visibility = 'hidden';
+        menu.style.display = 'block';
+        menu.style.left = '0px';
+        menu.style.top = '0px';
+
+        const viewport = window.visualViewport;
+        const leftEdge = (viewport ? viewport.offsetLeft : 0) + 8;
+        const topEdge = (viewport ? viewport.offsetTop : 0) + 8;
+        const width = viewport ? viewport.width : document.documentElement.clientWidth;
+        const height = viewport ? viewport.height : document.documentElement.clientHeight;
+        const rightEdge = leftEdge + width - 16;
+        const bottomEdge = topEdge + height - 16;
+        menu.style.minWidth = `${Math.min(200, Math.max(0, width - 16))}px`;
+        menu.style.maxWidth = `${Math.max(0, width - 16)}px`;
+        menu.style.maxHeight = `${Math.max(0, height - 16)}px`;
+
+        const anchor = trigger.getBoundingClientRect();
+        const naturalHeight = menu.getBoundingClientRect().height;
+        const below = Math.min(bottomEdge, Math.max(topEdge, anchor.bottom + 4));
+        const above = Math.max(topEdge, Math.min(bottomEdge, anchor.top - 4));
+        const spaceBelow = bottomEdge - below;
+        const spaceAbove = above - topEdge;
+        const openAbove = naturalHeight > spaceBelow && spaceAbove > spaceBelow;
+        menu.style.maxHeight = `${Math.max(0, openAbove ? spaceAbove : spaceBelow)}px`;
+        const size = menu.getBoundingClientRect();
+        menu.style.left = `${Math.max(leftEdge, Math.min(anchor.right - size.width, rightEdge - size.width))}px`;
+        menu.style.top = `${openAbove ? above - size.height : below}px`;
+        menu.style.visibility = 'visible';
+        trigger.setAttribute('aria-expanded', 'true');
+        menu.focus({ preventScroll: true });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => new ConfigMenuController());
+
 // Notification Manager
 class NotificationManager {
     static show(message, type = 'info', duration = 5000) {

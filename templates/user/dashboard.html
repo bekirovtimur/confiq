@@ -146,10 +146,11 @@
                                 {% endif %}
                             </div>
                             <div style="position: relative;">
-                                <button class="menu-btn" onclick="toggleConfigMenu({{ config.id }})">
+                                <button type="button" class="menu-btn" data-config-menu="configMenu{{ config.id }}"
+                                        aria-controls="configMenu{{ config.id }}" aria-expanded="false" aria-label="Действия с конфигурацией">
                                     <span class="material-icons-round">more_vert</span>
                                 </button>
-                                <div class="md-menu" id="configMenu{{ config.id }}" style="display: none;">
+                                <div class="md-menu config-menu" id="configMenu{{ config.id }}" style="display: none;" tabindex="-1">
                                     <div class="md-menu-item" onclick="window.location.href='{{ url_for('user.view_config', config_id=config.id) }}'">
                                         <span class="material-icons-round">visibility</span>
                                         Просмотреть
@@ -249,15 +250,6 @@
 </div>
 
 <script>
-function toggleConfigMenu(configId) {
-    const menu = document.getElementById('configMenu' + configId);
-    // Close only other config menus, not user menu
-    document.querySelectorAll('[id^="configMenu"]').forEach(m => {
-        if (m !== menu) m.style.display = 'none';
-    });
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-}
-
 function confirmDelete(configName, configId) {
     document.getElementById('deleteConfigName').textContent = configName;
     document.getElementById('deleteForm').action = '/user/configs/' + configId + '/delete';
@@ -268,11 +260,5 @@ function closeDeleteModal() {
     document.getElementById('deleteModal').style.display = 'none';
 }
 
-// Close config menus when clicking outside (but not user menu)
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.config-card-header')) {
-        document.querySelectorAll('[id^="configMenu"]').forEach(m => m.style.display = 'none');
-    }
-});
 </script>
 {% endblock %}

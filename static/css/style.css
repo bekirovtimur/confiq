@@ -1344,11 +1344,13 @@ h6 {
 }
 
 /* Config Card Menu */
-.config-card-header .md-menu {
-    position: absolute;
-    right: 16px;
-    top: 56px;
-    min-width: 200px;
+.config-menu {
+    position: fixed;
+    min-width: min(200px, calc(100vw - 16px));
+    width: max-content;
+    max-width: calc(100vw - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     z-index: 1000;
     background-color: var(--md-surface);
     border-radius: var(--md-shape-small);

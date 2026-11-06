@@ -1,4 +1,5 @@
 import io
+import re
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -93,6 +94,20 @@ class QRRouteTests(unittest.TestCase):
                 self.assertEqual(html.count(f'/user/configs/{self.small}/qr'), 2)
                 for config_id in [self.large, self.empty, self.foreign]:
                     self.assertNotIn(f'/user/configs/{config_id}/qr', html)
+
+    def test_config_cards_use_shared_viewport_menu_controller(self):
+        for path in ['/user/dashboard', '/user/configs']:
+            with self.subTest(path=path):
+                html = self.client.get(path).get_data(as_text=True)
+                self.assertNotIn('function toggleConfigMenu', html)
+                self.assertNotIn("closest('.config-card-header')", html)
+                for config_id in [self.small, self.large, self.empty]:
+                    self.assertIn(f'data-config-menu="configMenu{config_id}"', html)
+                    self.assertIn(f'aria-controls="configMenu{config_id}" aria-expanded="false"', html)
+                    self.assertRegex(html, rf'class="md-menu config-menu" id="configMenu{config_id}"')
+                    menu = re.search(rf'id="configMenu{config_id}"(.*?)</div>\s*</div>\s*</div>', html, re.S).group(1)
+                    for suffix in ['', '/edit', '/download']:
+                        self.assertIn(f'/user/configs/{config_id}{suffix}', menu)
 
     def test_large_config_page_works_without_offering_qr(self):
         response = self.client.get(f'/user/configs/{self.large}')
