@@ -38,9 +38,9 @@
                     <span class="material-icons-round md-20">category</span>
                     Типы
                 </a>
-                <a href="{{ url_for('user.configs') }}" class="app-bar-nav-item {% if request.endpoint and 'user.configs' in request.endpoint %}active{% endif %}">
+                <a href="{{ url_for('admin.configs') }}" class="app-bar-nav-item {% if request.endpoint in ['admin.configs', 'admin.view_config', 'admin.change_config_type'] %}active{% endif %}">
                     <span class="material-icons-round md-20">vpn_key</span>
-                    Конфигурации
+                    Все конфигурации
                 </a>
             {% else %}
                 <a href="{{ url_for('user.dashboard') }}" class="app-bar-nav-item {% if request.endpoint == 'user.dashboard' %}active{% endif %}">

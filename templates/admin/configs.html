@@ -27,7 +27,9 @@
                                 <th>ID</th>
                                 <th>Название</th>
                                 <th>Пользователь</th>
+                                <th>Тип</th>
                                 <th>Endpoint</th>
+                                <th>Создано</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
@@ -44,6 +46,7 @@
                                         {% endif %}
                                     </div>
                                 </td>
+                                <td>{{ config.config_type.name if config.config_type else 'Не указан' }}</td>
                                 <td>
                                     <a href="{{ url_for('admin.endpoint_configs', endpoint_id=config.endpoint_ref.id) }}" style="color: var(--md-primary); text-decoration: none;">
                                         {{ config.endpoint_ref.name }}
@@ -52,13 +55,17 @@
                                         {{ config.endpoint_ref.full_address }}
                                     </div>
                                 </td>
+                                <td>{{ config.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
                                 <td>
                                     <div style="display: flex; gap: 8px;">
-                                        <a href="{{ url_for('user.view_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-tonal" title="Просмотреть">
+                                        <a href="{{ url_for('admin.view_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-tonal" title="Просмотреть">
                                             <span class="material-icons-round md-18">visibility</span>
                                         </a>
-                                        <a href="{{ url_for('user.download_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-outlined" title="Скачать">
+                                        <a href="{{ url_for('admin.download_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-outlined" title="Скачать">
                                             <span class="material-icons-round md-18">download</span>
+                                        </a>
+                                        <a href="{{ url_for('admin.change_config_type', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-outlined" title="Изменить тип">
+                                            <span class="material-icons-round md-18">swap_horiz</span>
                                         </a>
                                     </div>
                                 </td>

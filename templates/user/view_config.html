@@ -3,12 +3,13 @@
 {% block title %}{{ config.name or 'Конфигурация' }} - Confiq{% endblock %}
 
 {% block content %}
+{% set config_namespace = 'admin' if admin_view else 'user' %}
 <div class="content-container">
     <!-- Breadcrumbs -->
     <div class="md-breadcrumbs">
-        <a href="{{ url_for('user.dashboard') }}">Главная</a>
+        <a href="{{ url_for(config_namespace ~ '.dashboard') }}">Главная</a>
         <span class="material-icons-round md-18">chevron_right</span>
-        <a href="{{ url_for('user.configs') }}">Мои конфиги</a>
+        <a href="{{ url_for(config_namespace ~ '.configs') }}">{{ 'Все конфигурации' if admin_view else 'Мои конфиги' }}</a>
         <span class="material-icons-round md-18">chevron_right</span>
         <span class="md-breadcrumbs-current">{{ config.name or 'Конфигурация' }}</span>
     </div>
@@ -32,18 +33,29 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px;">
+                        {% if admin_view %}
+                        <a href="{{ url_for('admin.change_config_type', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-tonal" title="Изменить тип">
+                            <span class="material-icons-round">swap_horiz</span>
+                        </a>
+                        {% else %}
                         <a href="{{ url_for('user.edit_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-tonal" title="Редактировать">
                             <span class="material-icons-round">edit</span>
                         </a>
-                        <a href="{{ url_for('user.download_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-filled" title="Скачать">
+                        {% endif %}
+                        <a href="{{ url_for(config_namespace ~ '.download_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-filled" title="Скачать">
                             <span class="material-icons-round">download</span>
                         </a>
+                        {% if not admin_view %}
                         <button class="md-btn md-btn-icon md-btn-text" style="color: var(--md-error);" onclick="confirmDelete('{{ config.name or 'Без названия' }}', {{ config.id }})" title="Удалить">
                             <span class="material-icons-round">delete</span>
                         </button>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="md-card-body">
+                    {% if admin_view %}
+                    <p>Владелец: <strong>{{ config.owner.username }}</strong></p>
+                    {% endif %}
                     <div class="md-grid md-grid-3" style="gap: 16px;">
                         <div>
                             <div style="font-size: 0.75rem; color: var(--md-on-surface-variant); margin-bottom: 4px;">Endpoint</div>
@@ -145,13 +157,13 @@
                     <p class="qr-small-screen-note">
                         Для сканирования откройте QR-код в полном размере.
                     </p>
-                    <a href="{{ url_for('user.config_qr', config_id=config.id) }}" target="_blank" class="md-btn md-btn-outlined md-btn-small" style="margin-top: 8px;">
+                    <a href="{{ url_for(config_namespace ~ '.config_qr', config_id=config.id) }}" target="_blank" class="md-btn md-btn-outlined md-btn-small" style="margin-top: 8px;">
                         <span class="material-icons-round md-18">open_in_full</span>
                         Открыть в полном размере
                     </a>
                     {% else %}
                     <p>{{ qr_result.reason }}</p>
-                    <a href="{{ url_for('user.download_config', config_id=config.id) }}" class="md-btn md-btn-outlined md-btn-small">
+                    <a href="{{ url_for(config_namespace ~ '.download_config', config_id=config.id) }}" class="md-btn md-btn-outlined md-btn-small">
                         <span class="material-icons-round md-18">download</span>
                         Скачать конфигурацию
                     </a>
@@ -253,6 +265,7 @@
 </div>
 
 <!-- Delete Modal -->
+{% if not admin_view %}
 <div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="md-dialog" style="margin: 16px;">
         <div class="md-dialog-title">
@@ -275,6 +288,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}

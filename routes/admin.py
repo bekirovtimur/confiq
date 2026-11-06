@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, BooleanField, PasswordField, SubmitField, SelectField, TextAreaField, SelectMultipleField
@@ -6,6 +6,9 @@ from wtforms.validators import DataRequired, Length, NumberRange, IPAddress, Opt
 from models import db, User, Endpoint, Config, ConfigType, Group
 from warp.client import WarpAPI
 from functools import wraps
+from jinja2 import Environment, StrictUndefined
+from sqlalchemy.orm import joinedload
+from routes.user import render_config_page, download_config_response, config_qr_response
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -64,6 +67,12 @@ class GroupForm(FlaskForm):
     name = StringField('Название', validators=[DataRequired(), Length(min=3, max=100)])
     description = TextAreaField('Описание', validators=[Length(max=500)])
     submit = SubmitField('Создать группу')
+
+
+class ChangeConfigTypeForm(FlaskForm):
+    config_type_id = SelectField('Новый тип конфигурации', coerce=int, validators=[DataRequired()])
+    submit = SubmitField('Изменить тип')
+
 
 class EditGroupForm(FlaskForm):
     name = StringField('Название', validators=[DataRequired(), Length(min=3, max=100)])
@@ -357,11 +366,83 @@ def configs():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
-    configs = Config.query.order_by(Config.created_at.desc()).paginate(
+    configs = Config.query.options(
+        joinedload(Config.owner), joinedload(Config.endpoint_ref), joinedload(Config.config_type)
+    ).order_by(Config.created_at.desc(), Config.id.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
     
     return render_template('admin/configs.html', configs=configs)
+
+
+@admin_bp.route('/configs/<int:config_id>')
+@login_required
+@admin_required
+def view_config(config_id):
+    """Просмотр конфигурации любого пользователя."""
+    return render_config_page(Config.query.get_or_404(config_id), admin_view=True)
+
+
+@admin_bp.route('/configs/<int:config_id>/download')
+@login_required
+@admin_required
+def download_config(config_id):
+    return download_config_response(Config.query.get_or_404(config_id))
+
+
+@admin_bp.route('/configs/<int:config_id>/qr')
+@login_required
+@admin_required
+def config_qr(config_id):
+    return config_qr_response(Config.query.get_or_404(config_id), admin_view=True)
+
+
+@admin_bp.route('/configs/<int:config_id>/change-type', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def change_config_type(config_id):
+    """Смена шаблона без изменения устройства Cloudflare, ключей и IP."""
+    config = Config.query.get_or_404(config_id)
+    form = ChangeConfigTypeForm()
+    available_types = sorted(
+        (ct for ct in config.endpoint_ref.config_types
+         if ct.is_active and ct.id != config.config_type_id),
+        key=lambda ct: ct.name
+    )
+    form.config_type_id.choices = [(ct.id, ct.name) for ct in available_types]
+
+    if form.validate_on_submit():
+        target_type = next(ct for ct in available_types if ct.id == form.config_type_id.data)
+        try:
+            # Undefined переменные не должны незаметно превращаться в пустые строки.
+            template = Environment(undefined=StrictUndefined).from_string(target_type.config_template)
+            content = template.render(
+                private_key=config.private_key,
+                public_key=config.public_key,
+                peer_public_key=config.peer_public_key,
+                client_ipv4=config.client_ipv4,
+                client_ipv6=config.client_ipv6,
+                endpoint=config.endpoint_ref.address,
+                port=config.endpoint_ref.port,
+                cloudflare_id=config.cloudflare_id,
+                token=config.cloudflare_token
+            )
+            if not content.strip():
+                raise ValueError('Пустая конфигурация')
+            config.config_type = target_type
+            config.config_content = content
+            db.session.commit()
+            flash('Тип конфигурации изменён. Скачайте файл заново и импортируйте его в клиент.', 'success')
+            return redirect(url_for('admin.view_config', config_id=config.id))
+        except Exception:
+            db.session.rollback()
+            # Не выводим ошибки шаблонов с потенциально секретными данными в интерфейс.
+            current_app.logger.warning('Не удалось изменить тип конфигурации %s', config_id)
+            flash('Не удалось изменить тип конфигурации. Проверьте шаблон и повторите попытку. Исходный конфиг сохранён.', 'danger')
+
+    return render_template('admin/change_config_type.html', config=config, form=form,
+                           available_types=available_types)
+
 
 @admin_bp.route('/endpoints/<int:endpoint_id>/configs')
 @login_required

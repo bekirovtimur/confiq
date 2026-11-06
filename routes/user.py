@@ -208,7 +208,11 @@ def get_endpoint_config_types(endpoint_id):
 def view_config(config_id):
     """Просмотр конфигурации"""
     config = Config.query.filter_by(id=config_id, user_id=current_user.id).first_or_404()
-    
+    return render_config_page(config)
+
+
+def render_config_page(config, admin_view=False):
+    """Общий интерфейс просмотра; права проверяются вызывающим маршрутом."""
     # Получаем тип конфигурации
     config_type = config.config_type
     
@@ -228,14 +232,19 @@ def view_config(config_id):
                          config_type=config_type,
                          client_links=client_links,
                          qr_result=qr_result,
-                         qr_data=qr_data)
+                         qr_data=qr_data,
+                         admin_view=admin_view)
 
 @user_bp.route('/configs/<int:config_id>/download')
 @login_required
 def download_config(config_id):
     """Скачивание конфиг-файла"""
     config = Config.query.filter_by(id=config_id, user_id=current_user.id).first_or_404()
-    
+    return download_config_response(config)
+
+
+def download_config_response(config):
+    """Ответ с файлом для уже авторизованного доступа к конфигурации."""
     # Определяем расширение файла на основе типа конфигурации
     if config.config_type:
         # Clash использует YAML
@@ -261,11 +270,16 @@ def download_config(config_id):
 def config_qr(config_id):
     """Получение QR-кода конфигурации"""
     config = Config.query.filter_by(id=config_id, user_id=current_user.id).first_or_404()
-    
+    return config_qr_response(config)
+
+
+def config_qr_response(config, admin_view=False):
+    """Общий QR-ответ; права проверяются вызывающим маршрутом."""
     qr_result = prepare_qr(config.config_content)
     if not qr_result.available:
         return render_template('user/qr_unavailable.html',
-                               config=config, reason=qr_result.reason), 422
+                               config=config, reason=qr_result.reason,
+                               admin_view=admin_view), 422
 
     response = make_response(qr_result.png())
     response.headers['Content-Type'] = 'image/png'

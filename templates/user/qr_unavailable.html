@@ -3,6 +3,7 @@
 {% block title %}QR-код недоступен - Confiq{% endblock %}
 
 {% block content %}
+{% set config_namespace = 'admin' if admin_view else 'user' %}
 <div class="content-container">
     <div class="md-card">
         <div class="md-card-header">
@@ -10,11 +11,11 @@
         </div>
         <div class="md-card-body">
             <p>{{ reason }}</p>
-            <a href="{{ url_for('user.download_config', config_id=config.id) }}" class="md-btn md-btn-filled">
+            <a href="{{ url_for(config_namespace ~ '.download_config', config_id=config.id) }}" class="md-btn md-btn-filled">
                 <span class="material-icons-round">download</span>
                 Скачать конфигурацию
             </a>
-            <a href="{{ url_for('user.view_config', config_id=config.id) }}" class="md-btn md-btn-text">
+            <a href="{{ url_for(config_namespace ~ '.view_config', config_id=config.id) }}" class="md-btn md-btn-text">
                 Вернуться к конфигурации
             </a>
         </div>

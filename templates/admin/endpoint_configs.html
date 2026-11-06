@@ -96,7 +96,7 @@
                                 <td>{{ config.owner.username }}</td>
                                 <td style="color: var(--md-on-surface-variant);">{{ config.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
                                 <td>
-                                    <a href="{{ url_for('user.view_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-tonal" title="Просмотреть">
+                                    <a href="{{ url_for('admin.view_config', config_id=config.id) }}" class="md-btn md-btn-icon md-btn-tonal" title="Просмотреть">
                                         <span class="material-icons-round md-18">visibility</span>
                                     </a>
                                 </td>

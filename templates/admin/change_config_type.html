@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Изменить тип конфигурации - Confiq{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <div class="md-breadcrumbs">
+        <a href="{{ url_for('admin.configs') }}">Все конфигурации</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <a href="{{ url_for('admin.view_config', config_id=config.id) }}">{{ config.name or 'Без названия' }}</a>
+        <span class="material-icons-round md-18">chevron_right</span>
+        <span class="md-breadcrumbs-current">Изменить тип</span>
+    </div>
+
+    <div class="md-card">
+        <div class="md-card-header">
+            <div class="md-card-title">Изменить тип конфигурации</div>
+        </div>
+        <div class="md-card-body">
+            <p>Конфигурация: <strong>{{ config.name or 'Без названия' }}</strong> · Владелец: <strong>{{ config.owner.username }}</strong></p>
+            <p>Текущий тип: <strong>{{ config.config_type.name if config.config_type else 'Не указан' }}</strong></p>
+            <p>Endpoint: <strong>{{ config.endpoint_ref.name }}</strong> ({{ config.endpoint_ref.full_address }})</p>
+            <p>Файл будет заново сформирован по шаблону выбранного типа. Ключи, IP-адреса и устройство Cloudflare останутся прежними.</p>
+            <p><strong>После изменения скачайте файл заново и импортируйте его в подходящий клиент.</strong> Ранее скачанные файлы не обновятся. Совместимость протокола и параметров с сервером необходимо проверить отдельно.</p>
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                {% if available_types %}
+                <div class="md-field {% if form.config_type_id.errors %}md-field-error{% endif %}">
+                    {{ form.config_type_id(class='md-field-input') }}
+                    <label class="md-field-label" for="config_type_id">Новый тип конфигурации</label>
+                </div>
+                <p class="md-field-helper">Доступны только активные типы, поддерживаемые текущим endpoint.</p>
+                {% else %}
+                <p>Для этого endpoint нет других активных типов конфигураций.</p>
+                {% endif %}
+                {% for field, errors in form.errors.items() %}
+                    {% for error in errors %}
+                    <p class="md-field-helper" style="color: var(--md-error);">{{ error }}</p>
+                    {% endfor %}
+                {% endfor %}
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <a href="{{ url_for('admin.view_config', config_id=config.id) }}" class="md-btn md-btn-text">Отмена</a>
+                    {% if available_types %}
+                    <button type="submit" class="md-btn md-btn-filled">
+                        <span class="material-icons-round">swap_horiz</span>
+                        Изменить тип
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

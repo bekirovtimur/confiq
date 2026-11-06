@@ -178,7 +178,7 @@
                 </div>
                 <div class="md-card-body" style="padding: 8px 0;">
                     {% for config in user.configs[:5] %}
-                    <a href="{{ url_for('user.view_config', config_id=config.id) }}" class="md-list-item">
+                    <a href="{{ url_for('admin.view_config', config_id=config.id) }}" class="md-list-item">
                         <span class="material-icons-round">vpn_key</span>
                         <div class="md-list-item-content">
                             <div class="md-list-item-title">{{ config.name or 'Без названия' }}</div>
